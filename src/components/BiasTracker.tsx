@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useInView } from "@/hooks/useInView";
+import { RotateCcw } from "lucide-react";
 
 type BiasState = "neutral" | "bullish" | "bearish";
 
@@ -8,6 +10,8 @@ interface TimeframeBias {
 }
 
 const BiasTracker = () => {
+  const { ref, isInView } = useInView({ threshold: 0.1 });
+  
   const [timeframes, setTimeframes] = useState<TimeframeBias[]>([
     { label: "1D", bias: "neutral" },
     { label: "4H", bias: "neutral" },
@@ -45,11 +49,11 @@ const BiasTracker = () => {
   const getBiasStyles = (bias: BiasState) => {
     switch (bias) {
       case "bullish":
-        return "border-success/50 bg-success/10 text-success";
+        return "border-success/60 bg-success/5 text-success";
       case "bearish":
-        return "border-destructive/50 bg-destructive/10 text-destructive";
+        return "border-destructive/60 bg-destructive/5 text-destructive";
       default:
-        return "border-border bg-secondary text-muted-foreground";
+        return "border-border bg-secondary/50 text-muted-foreground";
     }
   };
 
@@ -65,25 +69,38 @@ const BiasTracker = () => {
   };
 
   return (
-    <section id="tracker" className="border-t border-border py-24">
+    <section id="tracker" className="border-t border-border py-32">
       <div className="container mx-auto px-6">
-        <h2 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
-          Trading Bias Tracker
-        </h2>
-        <p className="mb-12 max-w-xl text-muted-foreground">
-          Click buttons to cycle through market bias states.
-        </p>
+        <div 
+          ref={ref}
+          className={`transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        >
+          <p className="mb-4 text-sm tracking-[0.2em] uppercase text-muted-foreground">
+            Tool
+          </p>
+          <h2 className="mb-6 font-display text-4xl font-medium tracking-tight md:text-5xl">
+            Trading Bias Tracker
+          </h2>
+          <p className="mb-16 max-w-lg text-muted-foreground leading-relaxed">
+            Click any timeframe to cycle through market bias states.
+          </p>
+        </div>
 
         {/* Timeframe Grid */}
-        <div className="mb-12 grid grid-cols-5 gap-3 md:gap-4">
+        <div 
+          className={`mb-16 grid grid-cols-5 gap-3 transition-all duration-1000 delay-200 md:gap-4 ${
+            isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
           {timeframes.map((tf, index) => (
             <button
               key={tf.label}
               onClick={() => cycleBias(index)}
-              className={`flex flex-col items-center justify-center border p-4 md:p-6 transition-all duration-200 hover:scale-[1.02] ${getBiasStyles(tf.bias)}`}
+              className={`group relative flex flex-col items-center justify-center border p-5 md:p-8 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${getBiasStyles(tf.bias)}`}
+              style={{ transitionDelay: `${index * 50}ms` }}
             >
-              <span className="text-xl font-semibold md:text-2xl">{tf.label}</span>
-              <span className="mt-1 text-xs uppercase tracking-wider opacity-80">
+              <span className="text-xl font-medium md:text-2xl">{tf.label}</span>
+              <span className="mt-2 text-[10px] uppercase tracking-[0.15em] opacity-70">
                 {tf.bias}
               </span>
             </button>
@@ -91,41 +108,54 @@ const BiasTracker = () => {
         </div>
 
         {/* Overall Bias */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className={`border px-8 py-4 text-center ${getOverallBiasStyles(getOverallBias())}`}>
-            <span className="text-xs uppercase tracking-widest">Overall Bias</span>
-            <span className="mt-1 block text-xl font-semibold uppercase">
+        <div 
+          className={`mb-12 flex flex-col items-center transition-all duration-1000 delay-300 ${
+            isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <div className={`border px-10 py-6 text-center transition-all duration-300 ${getOverallBiasStyles(getOverallBias())}`}>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Overall Bias</span>
+            <span className="mt-2 block text-2xl font-medium uppercase tracking-wide">
               {getOverallBias()}
             </span>
           </div>
           
-          <p className="mt-4 text-sm text-muted-foreground">
-            Bullish: {bullishCount} · Bearish: {bearishCount} · Neutral: {neutralCount}
-          </p>
+          <div className="mt-6 flex items-center gap-6 text-sm text-muted-foreground">
+            <span>Bullish: {bullishCount}</span>
+            <span className="text-border">·</span>
+            <span>Bearish: {bearishCount}</span>
+            <span className="text-border">·</span>
+            <span>Neutral: {neutralCount}</span>
+          </div>
         </div>
 
         {/* Legend & Reset */}
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-6 text-sm">
-            <span className="flex items-center gap-2">
+        <div 
+          className={`flex flex-col items-center gap-8 transition-all duration-1000 delay-400 ${
+            isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <div className="flex items-center gap-8 text-sm">
+            <span className="flex items-center gap-2.5">
               <span className="h-2 w-2 bg-success" />
-              Bullish
+              <span className="text-muted-foreground">Bullish</span>
             </span>
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2.5">
               <span className="h-2 w-2 bg-destructive" />
-              Bearish
+              <span className="text-muted-foreground">Bearish</span>
             </span>
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2.5">
               <span className="h-2 w-2 bg-muted" />
-              Neutral
+              <span className="text-muted-foreground">Neutral</span>
             </span>
           </div>
 
           <button
             onClick={resetAll}
-            className="border border-border px-6 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+            className="group inline-flex items-center gap-2 border border-border px-6 py-2.5 text-sm text-muted-foreground transition-all duration-300 hover:border-foreground hover:text-foreground"
           >
-            Reset
+            <RotateCcw className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-rotate-180" />
+            Reset All
           </button>
         </div>
       </div>
