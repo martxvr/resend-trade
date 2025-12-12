@@ -1,6 +1,6 @@
 const Footer = () => {
   return (
-    <footer className="border-t border-border py-16">
+    <footer className="border-t border-border/50 py-16">
       <div className="container mx-auto px-6">
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           {/* Brand */}
@@ -35,11 +35,20 @@ const Footer = () => {
         </div>
         
         {/* Divider */}
-        <div className="my-10 h-px bg-border" />
+        <div className="my-10 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
         
         {/* Bottom */}
-        <div className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} TradeBias. All rights reserved.
+        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} TradeBias. All rights reserved.
+          </div>
+          
+          {/* Decorative element */}
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-purple/50 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-green/50 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-amber/50 animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
         </div>
       </div>
     </footer>

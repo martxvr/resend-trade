@@ -15,14 +15,14 @@ const Header = () => {
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled 
-          ? 'border-b border-border bg-background/90 backdrop-blur-md' 
+          ? 'border-b border-border/50 bg-background/80 backdrop-blur-xl' 
           : 'border-b border-transparent bg-transparent'
       }`}
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
         <a 
           href="/" 
-          className="text-lg font-medium tracking-tight transition-opacity duration-300 hover:opacity-70"
+          className="text-lg font-medium tracking-tight transition-all duration-300 hover:opacity-70"
         >
           TradeBias
         </a>
@@ -57,7 +57,7 @@ const Header = () => {
           </a>
           <a 
             href="#tracker" 
-            className="border border-foreground px-5 py-2 text-sm font-medium transition-all duration-300 hover:bg-foreground hover:text-background"
+            className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90"
           >
             Get Started
           </a>
