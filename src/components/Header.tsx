@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,18 +51,31 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-6">
-          <a 
-            href="#tracker" 
-            className="hidden text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground md:block"
-          >
-            Log in
-          </a>
-          <a 
-            href="#tracker" 
-            className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90"
-          >
-            Get Started
-          </a>
+          {!loading && (
+            user ? (
+              <a 
+                href="/dashboard" 
+                className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 rounded-xl"
+              >
+                Dashboard
+              </a>
+            ) : (
+              <>
+                <a 
+                  href="/auth" 
+                  className="hidden text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground md:block"
+                >
+                  Log in
+                </a>
+                <a 
+                  href="/auth" 
+                  className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 rounded-xl"
+                >
+                  Get Started
+                </a>
+              </>
+            )
+          )}
         </div>
       </div>
     </header>
