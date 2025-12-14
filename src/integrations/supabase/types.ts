@@ -45,6 +45,7 @@ export type Database = {
           is_online: boolean
           joined_at: string
           room_id: string
+          timeframe_biases: Json
           updated_at: string
           user_id: string
         }
@@ -54,6 +55,7 @@ export type Database = {
           is_online?: boolean
           joined_at?: string
           room_id: string
+          timeframe_biases?: Json
           updated_at?: string
           user_id: string
         }
@@ -63,6 +65,7 @@ export type Database = {
           is_online?: boolean
           joined_at?: string
           room_id?: string
+          timeframe_biases?: Json
           updated_at?: string
           user_id?: string
         }

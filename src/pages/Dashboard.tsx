@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRooms } from '@/hooks/useRoom';
+import { TimeframeSelector } from '@/components/TimeframeSelector';
 import { toast } from 'sonner';
-import { Users, Plus, ArrowRight, LogOut, Copy, X, Hash } from 'lucide-react';
+import { Users, Plus, ArrowRight, LogOut, Copy, X, Hash, ChevronRight, ChevronLeft } from 'lucide-react';
+
+const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
 
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -14,9 +17,11 @@ export default function Dashboard() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomInstrument, setNewRoomInstrument] = useState('');
+  const [newRoomTimeframes, setNewRoomTimeframes] = useState<string[]>(DEFAULT_TIMEFRAMES);
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [createStep, setCreateStep] = useState(1);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -24,12 +29,11 @@ export default function Dashboard() {
     }
   }, [user, authLoading, navigate]);
 
-  const handleCreateRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRoomName.trim() || !newRoomInstrument.trim()) return;
+  const handleCreateRoom = async () => {
+    if (!newRoomName.trim() || !newRoomInstrument.trim() || newRoomTimeframes.length === 0) return;
     
     setCreating(true);
-    const { error, room } = await createRoom(newRoomName, newRoomInstrument);
+    const { error, room } = await createRoom(newRoomName, newRoomInstrument, newRoomTimeframes);
     setCreating(false);
     
     if (error) {
@@ -39,12 +43,18 @@ export default function Dashboard() {
     
     toast.success('Room created');
     setShowCreateModal(false);
-    setNewRoomName('');
-    setNewRoomInstrument('');
+    resetCreateForm();
     
     if (room) {
       navigate(`/room/${room.id}`);
     }
+  };
+
+  const resetCreateForm = () => {
+    setNewRoomName('');
+    setNewRoomInstrument('');
+    setNewRoomTimeframes(DEFAULT_TIMEFRAMES);
+    setCreateStep(1);
   };
 
   const handleJoinRoom = async (e: React.FormEvent) => {
@@ -187,6 +197,9 @@ export default function Dashboard() {
                         <Copy className="w-3.5 h-3.5" />
                         {room.join_code}
                       </button>
+                      <span className="text-xs">
+                        {room.timeframes?.length || 0} timeframes
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -214,56 +227,99 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Create Room Modal */}
+      {/* Create Room Modal - Multi-step */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-md animate-scale-in">
-            <h2 className="font-display text-xl font-semibold text-foreground mb-6">
-              Create Trading Room
-            </h2>
-            <form onSubmit={handleCreateRoom} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Room Name
-                </label>
-                <input
-                  type="text"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
-                  placeholder="Morning Session"
-                  autoFocus
+          <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-lg animate-scale-in">
+            {/* Step indicator */}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-display text-xl font-semibold text-foreground">
+                {createStep === 1 ? 'Room Details' : 'Configure Timeframes'}
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 1 ? 'bg-foreground' : 'bg-border'}`} />
+                <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 2 ? 'bg-foreground' : 'bg-border'}`} />
+              </div>
+            </div>
+
+            {createStep === 1 ? (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Room Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
+                    placeholder="Morning Session"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Instrument / Market
+                  </label>
+                  <input
+                    type="text"
+                    value={newRoomInstrument}
+                    onChange={(e) => setNewRoomInstrument(e.target.value)}
+                    className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
+                    placeholder="ES, NQ, BTC..."
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetCreateForm();
+                    }}
+                    className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateStep(2)}
+                    disabled={!newRoomName.trim() || !newRoomInstrument.trim()}
+                    className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  Select up to 7 timeframes for bias tracking. Drag to reorder.
+                </p>
+                <TimeframeSelector
+                  selected={newRoomTimeframes}
+                  onChange={setNewRoomTimeframes}
                 />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateStep(1)}
+                    className="flex items-center justify-center gap-2 flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateRoom}
+                    disabled={creating || newRoomTimeframes.length === 0}
+                    className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50"
+                  >
+                    {creating ? 'Creating...' : 'Create Room'}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Instrument / Market
-                </label>
-                <input
-                  type="text"
-                  value={newRoomInstrument}
-                  onChange={(e) => setNewRoomInstrument(e.target.value)}
-                  className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
-                  placeholder="ES, NQ, BTC..."
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !newRoomName.trim() || !newRoomInstrument.trim()}
-                  className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50"
-                >
-                  {creating ? 'Creating...' : 'Create'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}
