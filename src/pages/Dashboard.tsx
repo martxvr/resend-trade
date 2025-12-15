@@ -10,7 +10,7 @@ const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
 
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { rooms, loading: roomsLoading, createRoom, joinByCode, closeRoom } = useMyRooms();
+  const { rooms, loading: roomsLoading, createRoom, joinByCode, deleteRoom } = useMyRooms();
   const navigate = useNavigate();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,7 +80,7 @@ export default function Dashboard() {
   };
 
   const handleCloseRoom = async (roomId: string) => {
-    const { error } = await closeRoom(roomId);
+    const { error } = await deleteRoom(roomId);
     if (error) {
       toast.error('Failed to close room');
     } else {

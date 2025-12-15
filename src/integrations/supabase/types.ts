@@ -88,6 +88,7 @@ export type Database = {
           join_code: string
           name: string
           owner_id: string
+          participation_mode: string
           updated_at: string
         }
         Insert: {
@@ -98,6 +99,7 @@ export type Database = {
           join_code?: string
           name: string
           owner_id: string
+          participation_mode?: string
           updated_at?: string
         }
         Update: {
@@ -108,6 +110,7 @@ export type Database = {
           join_code?: string
           name?: string
           owner_id?: string
+          participation_mode?: string
           updated_at?: string
         }
         Relationships: []

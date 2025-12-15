@@ -20,6 +20,7 @@ interface Room {
   owner_id: string;
   is_active: boolean;
   timeframes: string[];
+  participation_mode: 'participate' | 'follow';
   created_at: string;
 }
 
@@ -33,7 +34,7 @@ interface RoomStats {
 
 const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
 
-// Helper to safely parse timeframes from DB (may be returned as unknown type)
+// Helper to safely parse timeframes from DB
 function parseTimeframes(data: unknown): string[] {
   if (Array.isArray(data)) {
     return data.filter((item): item is string => typeof item === 'string');
@@ -47,6 +48,12 @@ function parseTimeframeBiases(data: Json | null | undefined): TimeframeBiases {
     return data as TimeframeBiases;
   }
   return {};
+}
+
+// Helper to parse participation_mode
+function parseParticipationMode(data: unknown): 'participate' | 'follow' {
+  if (data === 'follow') return 'follow';
+  return 'participate';
 }
 
 export function useRoom(roomId: string | null) {
@@ -106,7 +113,7 @@ export function useRoom(roomId: string | null) {
         return;
       }
 
-      // Parse room with timeframes (column may not be in types yet)
+      // Parse room with all fields
       const parsedRoom: Room | null = roomData ? {
         id: roomData.id,
         name: roomData.name,
@@ -115,7 +122,8 @@ export function useRoom(roomId: string | null) {
         owner_id: roomData.owner_id,
         is_active: roomData.is_active,
         created_at: roomData.created_at,
-        timeframes: parseTimeframes((roomData as Record<string, unknown>).timeframes)
+        timeframes: parseTimeframes((roomData as Record<string, unknown>).timeframes),
+        participation_mode: parseParticipationMode((roomData as Record<string, unknown>).participation_mode)
       } : null;
       
       setRoom(parsedRoom);
@@ -123,19 +131,18 @@ export function useRoom(roomId: string | null) {
       // Fetch members
       const { data: membersData, error: membersError } = await supabase
         .from('room_members')
-        .select('id, user_id, bias, is_online')
+        .select('id, user_id, bias, is_online, timeframe_biases')
         .eq('room_id', roomId);
 
       if (membersError) {
         console.error('Error fetching members:', membersError);
       } else {
-        // Also fetch timeframe_biases separately since it may not be in types
         const typedMembers = (membersData || []).map(m => ({
           ...m,
-          timeframe_biases: parseTimeframeBiases((m as Record<string, unknown>).timeframe_biases as Json)
+          timeframe_biases: parseTimeframeBiases(m.timeframe_biases)
         }));
         setMembers(typedMembers);
-        setStats(calculateStats(typedMembers, room?.timeframes || []));
+        setStats(calculateStats(typedMembers, parsedRoom?.timeframes || []));
         
         // Set my biases if I'm a member
         const myMembership = typedMembers.find(m => m.user_id === user?.id);
@@ -164,13 +171,13 @@ export function useRoom(roomId: string | null) {
           // Refetch members on any change
           const { data: membersData } = await supabase
             .from('room_members')
-            .select('id, user_id, bias, is_online')
+            .select('id, user_id, bias, is_online, timeframe_biases')
             .eq('room_id', roomId);
 
           if (membersData) {
             const typedMembers = membersData.map(m => ({
               ...m,
-              timeframe_biases: parseTimeframeBiases((m as Record<string, unknown>).timeframe_biases as Json)
+              timeframe_biases: parseTimeframeBiases(m.timeframe_biases)
             }));
             setMembers(typedMembers);
             
@@ -197,9 +204,13 @@ export function useRoom(roomId: string | null) {
           filter: `id=eq.${roomId}`
         },
         async (payload) => {
-          // Room settings updated (e.g., timeframes)
-          const updatedRoom = payload.new as Room;
-          setRoom(prev => prev ? { ...prev, ...updatedRoom } : null);
+          // Room settings updated
+          const updatedData = payload.new as Record<string, unknown>;
+          setRoom(prev => prev ? { 
+            ...prev, 
+            timeframes: parseTimeframes(updatedData.timeframes),
+            participation_mode: parseParticipationMode(updatedData.participation_mode)
+          } : null);
         }
       )
       .subscribe();
@@ -272,7 +283,6 @@ export function useRoom(roomId: string | null) {
       return { error: new Error('Not authorized') };
     }
 
-    // Direct update - timeframes column exists but may not be in generated types yet
     const { error } = await supabase
       .from('rooms')
       .update({ timeframes } as unknown as Record<string, never>)
@@ -285,6 +295,27 @@ export function useRoom(roomId: string | null) {
     }
 
     setRoom(prev => prev ? { ...prev, timeframes } : null);
+    return { error: null };
+  }, [roomId, user, room?.owner_id]);
+
+  // Update participation mode (owner only)
+  const updateParticipationMode = useCallback(async (mode: 'participate' | 'follow') => {
+    if (!roomId || !user || room?.owner_id !== user.id) {
+      return { error: new Error('Not authorized') };
+    }
+
+    const { error } = await supabase
+      .from('rooms')
+      .update({ participation_mode: mode } as unknown as Record<string, never>)
+      .eq('id', roomId)
+      .eq('owner_id', user.id);
+
+    if (error) {
+      console.error('Error updating participation mode:', error);
+      return { error };
+    }
+
+    setRoom(prev => prev ? { ...prev, participation_mode: mode } : null);
     return { error: null };
   }, [roomId, user, room?.owner_id]);
 
@@ -324,6 +355,7 @@ export function useRoom(roomId: string | null) {
     leaveRoom,
     updateTimeframeBias,
     updateTimeframes,
+    updateParticipationMode,
     resetAllBiases,
     isOwner: user?.id === room?.owner_id
   };
@@ -375,7 +407,8 @@ export function useMyRooms() {
         owner_id: r.owner_id,
         is_active: r.is_active,
         created_at: r.created_at,
-        timeframes: parseTimeframes((r as Record<string, unknown>).timeframes)
+        timeframes: parseTimeframes((r as Record<string, unknown>).timeframes),
+        participation_mode: parseParticipationMode((r as Record<string, unknown>).participation_mode)
       }));
       
       (memberRooms || []).forEach(m => {
@@ -390,7 +423,8 @@ export function useMyRooms() {
               owner_id: r.owner_id as string,
               is_active: r.is_active as boolean,
               created_at: r.created_at as string,
-              timeframes: parseTimeframes(r.timeframes)
+              timeframes: parseTimeframes(r.timeframes),
+              participation_mode: parseParticipationMode(r.participation_mode)
             });
           }
         }
@@ -459,6 +493,7 @@ export function useMyRooms() {
       is_active: data.is_active,
       created_at: data.created_at,
       timeframes: timeframes,
+      participation_mode: 'participate',
       member_count: 1 
     };
     setRooms(prev => [...prev, newRoom]);
@@ -498,7 +533,7 @@ export function useMyRooms() {
     return { error: null, room };
   }, [user]);
 
-  const closeRoom = useCallback(async (roomId: string) => {
+  const deleteRoom = useCallback(async (roomId: string) => {
     if (!user) return { error: new Error('Not authenticated') };
 
     const { error } = await supabase
@@ -508,6 +543,7 @@ export function useMyRooms() {
       .eq('owner_id', user.id);
 
     if (error) {
+      console.error('Error deleting room:', error);
       return { error };
     }
 
@@ -515,5 +551,11 @@ export function useMyRooms() {
     return { error: null };
   }, [user]);
 
-  return { rooms, loading, createRoom, joinByCode, closeRoom };
+  return {
+    rooms,
+    loading,
+    createRoom,
+    joinByCode,
+    deleteRoom
+  };
 }
