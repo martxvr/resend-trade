@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoom } from '@/hooks/useRoom';
 import { useBiasSound } from '@/hooks/useBiasSound';
-import { TimeframeBiasGrid, BiasType, biasConfig, calculateAggregateBias } from '@/components/TimeframeBiasGrid';
+import { BiasType, biasConfig } from '@/components/TimeframeBiasGrid';
 import { TimeframeSelector } from '@/components/TimeframeSelector';
+import RoomBiasTracker from '@/components/RoomBiasTracker';
 import { toast } from 'sonner';
-import { ArrowLeft, Users, Copy, Volume2, VolumeX, TrendingUp, TrendingDown, Minus, Settings, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Users, Copy, Volume2, VolumeX, Settings } from 'lucide-react';
 
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -21,10 +22,11 @@ export default function Room() {
     leaveRoom, 
     updateTimeframeBias,
     updateTimeframes,
+    updateParticipationMode,
     resetAllBiases,
     isOwner 
   } = useRoom(roomId || null);
-  const { playBiasSound, isMuted, toggleMute } = useBiasSound();
+  const { isMuted, toggleMute } = useBiasSound();
   const navigate = useNavigate();
   const [hasJoined, setHasJoined] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -60,7 +62,6 @@ export default function Room() {
   }, [room?.timeframes]);
 
   const handleBiasChange = async (timeframe: string, newBias: BiasType) => {
-    playBiasSound(newBias);
     const { error } = await updateTimeframeBias(timeframe, newBias);
     
     if (error) {
@@ -87,12 +88,25 @@ export default function Room() {
     }
   };
 
+  const handleToggleMode = async () => {
+    const newMode = room?.participation_mode === 'follow' ? 'participate' : 'follow';
+    const { error } = await updateParticipationMode(newMode);
+    if (error) {
+      toast.error('Failed to update room mode');
+    } else {
+      toast.success(`Room is now in ${newMode} mode`);
+    }
+  };
+
   const copyJoinCode = () => {
     if (room?.join_code) {
       navigator.clipboard.writeText(room.join_code);
       toast.success('Join code copied');
     }
   };
+
+  // Determine if user can interact with bias cards
+  const canInteract = room?.participation_mode === 'participate' || isOwner;
 
   if (authLoading || loading) {
     return (
@@ -120,20 +134,18 @@ export default function Room() {
 
   const overallConfig = biasConfig[stats.overallBias];
   const OverallIcon = overallConfig.icon;
-  const myOverallConfig = biasConfig[myAggregateBias.overallBias];
-  const MyOverallIcon = myOverallConfig.icon;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Minimal Header */}
       <header className="border-b border-border/30">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            <span className="text-sm">Back</span>
           </button>
           <div className="flex items-center gap-3">
             <button
@@ -163,93 +175,86 @@ export default function Room() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        {/* Room Info */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent-purple/10 text-accent-purple text-sm font-medium rounded-full mb-4">
-            {room.instrument}
-          </div>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground mb-4">
-            {room.name}
-          </h1>
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>{stats.total} trader{stats.total !== 1 ? 's' : ''} online</span>
-          </div>
-        </div>
-
-        {/* Room Consensus */}
-        <div className={`mb-10 p-6 rounded-3xl border ${overallConfig.border} ${overallConfig.bg} ${overallConfig.glow} transition-all duration-500`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                Room Consensus
-              </p>
-              <div className={`flex items-center gap-2 ${overallConfig.color}`}>
-                <OverallIcon className="w-6 h-6" />
-                <span className="font-display text-2xl font-bold">
-                  {overallConfig.label}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-6 text-sm">
-              <div className="text-center">
-                <p className="text-lg font-bold text-accent-green">{stats.bullish}</p>
-                <p className="text-xs text-muted-foreground">Bullish</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-red-400">{stats.bearish}</p>
-                <p className="text-xs text-muted-foreground">Bearish</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-muted-foreground">{stats.neutral}</p>
-                <p className="text-xs text-muted-foreground">Neutral</p>
-              </div>
+      {/* Main Content - Matching BiasTracker section layout */}
+      <section className="border-t border-border/50 py-32">
+        <div className="container mx-auto px-6">
+          {/* Room Header - Matches BiasTracker header style */}
+          <div className="mb-16">
+            <p className="mb-4 text-sm tracking-[0.2em] uppercase text-muted-foreground">
+              {room.instrument}
+            </p>
+            <h1 className="mb-6 font-display text-4xl font-medium tracking-tight md:text-5xl">
+              {room.name}
+            </h1>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {stats.total} trader{stats.total !== 1 ? 's' : ''} online
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* My Aggregate Bias */}
-        <div className={`mb-8 p-4 rounded-2xl border ${myOverallConfig.border} ${myOverallConfig.bg} transition-all duration-300`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MyOverallIcon className={`w-5 h-5 ${myOverallConfig.color}`} />
+          {/* Room Consensus Card - Premium styling */}
+          <div 
+            className={`mb-16 rounded-2xl border px-10 py-8 transition-all duration-500 ${
+              stats.overallBias === 'bullish' 
+                ? 'border-success/50 bg-success/5 shadow-[0_0_50px_-15px_hsl(var(--success)/0.4)]'
+                : stats.overallBias === 'bearish'
+                ? 'border-destructive/50 bg-destructive/5 shadow-[0_0_50px_-15px_hsl(var(--destructive)/0.4)]'
+                : 'border-border/50 bg-card/30'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Your Overall Bias</p>
-                <p className={`font-medium ${myOverallConfig.color}`}>{myOverallConfig.label}</p>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Room Consensus</span>
+                <div className={`mt-2 flex items-center gap-3 ${overallConfig.color}`}>
+                  <OverallIcon className="w-8 h-8" />
+                  <span className="text-3xl font-medium uppercase tracking-wide">
+                    {stats.overallBias}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-8 text-sm">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-success">{stats.bullish}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Bullish</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-destructive">{stats.bearish}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Bearish</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-muted-foreground">{stats.neutral}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Neutral</p>
+                </div>
               </div>
             </div>
-            <div className="flex gap-4 text-xs">
-              <span className="text-accent-green">{myAggregateBias.bullishCount} Bull</span>
-              <span className="text-red-400">{myAggregateBias.bearishCount} Bear</span>
-              <span className="text-muted-foreground">{myAggregateBias.neutralCount} Neutral</span>
-            </div>
           </div>
-        </div>
 
-        {/* Timeframe Bias Grid */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground uppercase tracking-wider">
-              Set Your Bias Per Timeframe
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Click to cycle: Neutral → Bullish → Bearish
-            </p>
-          </div>
-          <TimeframeBiasGrid
+          {/* Your Bias Tracker - Uses shared component matching homepage */}
+          <RoomBiasTracker
             timeframes={room.timeframes || []}
-            biases={myTimeframeBiases}
+            myBiases={myTimeframeBiases as Record<string, 'neutral' | 'bullish' | 'bearish'>}
             onBiasChange={handleBiasChange}
+            canInteract={canInteract}
+            participationMode={room.participation_mode || 'participate'}
+            isOwner={isOwner}
+            onToggleMode={handleToggleMode}
+            onReset={handleResetBiases}
+            stats={{
+              bullishCount: myAggregateBias.bullishCount,
+              bearishCount: myAggregateBias.bearishCount,
+              neutralCount: myAggregateBias.neutralCount
+            }}
           />
-        </div>
 
-        {/* Sound Indicator */}
-        <p className="text-center text-xs text-muted-foreground">
-          {isMuted ? 'Sounds muted' : 'Sound feedback enabled'}
-        </p>
-      </main>
+          {/* Sound status */}
+          <p className="mt-12 text-center text-xs text-muted-foreground">
+            {isMuted ? 'Sounds muted' : 'Sound feedback enabled'}
+          </p>
+        </div>
+      </section>
 
       {/* Settings Modal (Owner only) */}
       {showSettings && isOwner && (
@@ -264,16 +269,6 @@ export default function Room() {
                 selected={editTimeframes}
                 onChange={setEditTimeframes}
               />
-
-              <div className="pt-4 border-t border-border/30">
-                <button
-                  onClick={handleResetBiases}
-                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Reset all member biases
-                </button>
-              </div>
               
               <div className="flex gap-3 pt-2">
                 <button
