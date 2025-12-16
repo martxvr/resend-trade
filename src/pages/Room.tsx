@@ -6,8 +6,9 @@ import { useBiasSound } from '@/hooks/useBiasSound';
 import { BiasType, biasConfig } from '@/components/TimeframeBiasGrid';
 import { TimeframeSelector } from '@/components/TimeframeSelector';
 import RoomBiasTracker from '@/components/RoomBiasTracker';
+import ShareModal from '@/components/ShareModal';
 import { toast } from 'sonner';
-import { ArrowLeft, Users, Copy, Volume2, VolumeX, Settings } from 'lucide-react';
+import { ArrowLeft, Users, Copy, Volume2, VolumeX, Settings, Share2 } from 'lucide-react';
 
 export default function Room() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -30,6 +31,7 @@ export default function Room() {
   const navigate = useNavigate();
   const [hasJoined, setHasJoined] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [editTimeframes, setEditTimeframes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -165,6 +167,14 @@ export default function Room() {
               </button>
             )}
             <button
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-foreground bg-foreground/10 hover:bg-foreground/20 border border-border/50 rounded-lg transition-colors"
+              title="Share room"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Share
+            </button>
+            <button
               onClick={copyJoinCode}
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border/50 rounded-lg transition-colors"
             >
@@ -291,6 +301,19 @@ export default function Room() {
           </div>
         </div>
       )}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        room={{
+          id: room.id,
+          name: room.name,
+          instrument: room.instrument,
+          join_code: room.join_code,
+        }}
+        stats={stats}
+      />
     </div>
   );
 }
