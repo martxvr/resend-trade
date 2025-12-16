@@ -319,16 +319,14 @@ export function useRoom(roomId: string | null) {
     return { error: null };
   }, [roomId, user, room?.owner_id]);
 
-  // Reset all biases (owner only)
+  // Reset all biases (owner only) - uses server-side RPC with owner validation
   const resetAllBiases = useCallback(async () => {
     if (!roomId || !user || room?.owner_id !== user.id) {
       return { error: new Error('Not authorized') };
     }
 
     const { error } = await supabase
-      .from('room_members')
-      .update({ timeframe_biases: {} })
-      .eq('room_id', roomId);
+      .rpc('reset_room_biases', { p_room_id: roomId });
 
     if (error) {
       console.error('Error resetting biases:', error);

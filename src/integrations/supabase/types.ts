@@ -120,7 +120,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reset_room_biases: { Args: { p_room_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
