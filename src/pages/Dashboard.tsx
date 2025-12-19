@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRooms } from '@/hooks/useRoom';
+import { useRoomTemplates, RoomTemplate, ASSET_CLASSES, TRADING_STYLES } from '@/hooks/useRoomTemplates';
 import { TimeframeSelector } from '@/components/TimeframeSelector';
+import { TemplateSelector, CategorySelector } from '@/components/TemplateSelector';
+import { NotificationBell } from '@/components/NotificationBell';
 import { toast } from 'sonner';
-import { Users, Plus, ArrowRight, LogOut, Copy, X, Hash, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Users, Plus, ArrowRight, LogOut, Copy, X, Hash, ChevronRight, ChevronLeft, Trophy, Filter, Sparkles } from 'lucide-react';
 
 const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
 
@@ -18,16 +21,31 @@ export default function Dashboard() {
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomInstrument, setNewRoomInstrument] = useState('');
   const [newRoomTimeframes, setNewRoomTimeframes] = useState<string[]>(DEFAULT_TIMEFRAMES);
+  const [newRoomAssetClass, setNewRoomAssetClass] = useState<string | null>(null);
+  const [newRoomTradingStyle, setNewRoomTradingStyle] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<RoomTemplate | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [createStep, setCreateStep] = useState(1);
+  
+  // Filters
+  const [filterAssetClass, setFilterAssetClass] = useState<string | null>(null);
+  const [filterTradingStyle, setFilterTradingStyle] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  const handleTemplateSelect = (template: RoomTemplate) => {
+    setSelectedTemplate(template);
+    setNewRoomTimeframes(template.timeframes);
+    setNewRoomAssetClass(template.asset_class);
+    setNewRoomTradingStyle(template.trading_style);
+  };
 
   const handleCreateRoom = async () => {
     if (!newRoomName.trim() || !newRoomInstrument.trim() || newRoomTimeframes.length === 0) return;
@@ -54,6 +72,9 @@ export default function Dashboard() {
     setNewRoomName('');
     setNewRoomInstrument('');
     setNewRoomTimeframes(DEFAULT_TIMEFRAMES);
+    setNewRoomAssetClass(null);
+    setNewRoomTradingStyle(null);
+    setSelectedTemplate(null);
     setCreateStep(1);
   };
 
@@ -98,6 +119,15 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  // Filter rooms
+  const filteredRooms = rooms.filter(room => {
+    if (filterAssetClass && (room as any).asset_class !== filterAssetClass) return false;
+    if (filterTradingStyle && (room as any).trading_style !== filterTradingStyle) return false;
+    return true;
+  });
+
+  const activeFilters = (filterAssetClass ? 1 : 0) + (filterTradingStyle ? 1 : 0);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -114,13 +144,23 @@ export default function Dashboard() {
           <a href="/" className="font-display text-xl font-semibold tracking-tight text-foreground">
             TradeBias
           </a>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/leaderboard')}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Trophy className="w-4 h-4" />
+              <span className="hidden sm:inline">Leaderboard</span>
+            </button>
+            <NotificationBell />
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors ml-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -136,7 +176,7 @@ export default function Dashboard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mb-10">
+        <div className="flex flex-wrap gap-3 mb-6">
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all"
@@ -151,39 +191,125 @@ export default function Dashboard() {
             <Hash className="w-4 h-4" />
             Join Room
           </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all ${
+              activeFilters > 0
+                ? 'border-accent-purple bg-accent-purple/10 text-accent-purple'
+                : 'border-border/50 text-muted-foreground hover:text-foreground hover:bg-card/50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {activeFilters > 0 && (
+              <span className="w-5 h-5 bg-accent-purple text-white text-xs rounded-full flex items-center justify-center">
+                {activeFilters}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mb-8 p-4 bg-card/30 border border-border/30 rounded-xl animate-fade-up">
+            <div className="flex flex-wrap gap-6">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-2">Asset Class</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setFilterAssetClass(null)}
+                    className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                      !filterAssetClass ? 'bg-foreground text-background' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {ASSET_CLASSES.map(ac => (
+                    <button
+                      key={ac.value}
+                      onClick={() => setFilterAssetClass(ac.value)}
+                      className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                        filterAssetClass === ac.value ? 'bg-accent-green text-white' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {ac.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-2">Trading Style</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setFilterTradingStyle(null)}
+                    className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                      !filterTradingStyle ? 'bg-foreground text-background' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {TRADING_STYLES.map(ts => (
+                    <button
+                      key={ts.value}
+                      onClick={() => setFilterTradingStyle(ts.value)}
+                      className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                        filterTradingStyle === ts.value ? 'bg-accent-blue text-white' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {ts.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Rooms Grid */}
         {roomsLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin h-6 w-6 border-2 border-foreground border-t-transparent rounded-full" />
           </div>
-        ) : rooms.length === 0 ? (
+        ) : filteredRooms.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-border/50 rounded-2xl">
             <div className="w-12 h-12 bg-card/50 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Users className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No rooms yet</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {rooms.length === 0 ? 'No rooms yet' : 'No matching rooms'}
+            </h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Create your first trading room or join an existing one
+              {rooms.length === 0 
+                ? 'Create your first trading room or join an existing one'
+                : 'Try adjusting your filters'}
             </p>
           </div>
         ) : (
           <div className="grid gap-4">
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <div
                 key={room.id}
                 className="group bg-card/30 border border-border/30 rounded-2xl p-6 hover:border-border/60 hover:bg-card/50 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="font-display text-lg font-semibold text-foreground">
                         {room.name}
                       </h3>
                       <span className="px-2.5 py-0.5 bg-accent-purple/10 text-accent-purple text-xs font-medium rounded-full">
                         {room.instrument}
                       </span>
+                      {(room as any).asset_class && (
+                        <span className="px-2 py-0.5 bg-accent-green/10 text-accent-green text-[10px] font-medium rounded-full">
+                          {ASSET_CLASSES.find(a => a.value === (room as any).asset_class)?.label}
+                        </span>
+                      )}
+                      {(room as any).trading_style && (
+                        <span className="px-2 py-0.5 bg-accent-blue/10 text-accent-blue text-[10px] font-medium rounded-full">
+                          {TRADING_STYLES.find(t => t.value === (room as any).trading_style)?.label}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
@@ -230,19 +356,47 @@ export default function Dashboard() {
       {/* Create Room Modal - Multi-step */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-lg animate-scale-in">
+          <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-lg animate-scale-in max-h-[90vh] overflow-y-auto">
             {/* Step indicator */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="font-display text-xl font-semibold text-foreground">
-                {createStep === 1 ? 'Room Details' : 'Configure Timeframes'}
+                {createStep === 1 ? 'Choose Template' : createStep === 2 ? 'Room Details' : 'Configure Timeframes'}
               </h2>
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 1 ? 'bg-foreground' : 'bg-border'}`} />
                 <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 2 ? 'bg-foreground' : 'bg-border'}`} />
+                <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 3 ? 'bg-foreground' : 'bg-border'}`} />
               </div>
             </div>
 
             {createStep === 1 ? (
+              <div className="space-y-5">
+                <TemplateSelector 
+                  onSelect={handleTemplateSelect}
+                  selectedId={selectedTemplate?.id}
+                />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetCreateForm();
+                    }}
+                    className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateStep(2)}
+                    className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all flex items-center justify-center gap-2"
+                  >
+                    {selectedTemplate ? 'Use Template' : 'Custom Setup'}
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : createStep === 2 ? (
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -269,20 +423,24 @@ export default function Dashboard() {
                     placeholder="ES, NQ, BTC..."
                   />
                 </div>
+                <CategorySelector
+                  assetClass={newRoomAssetClass}
+                  tradingStyle={newRoomTradingStyle}
+                  onAssetClassChange={setNewRoomAssetClass}
+                  onTradingStyleChange={setNewRoomTradingStyle}
+                />
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowCreateModal(false);
-                      resetCreateForm();
-                    }}
-                    className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
+                    onClick={() => setCreateStep(1)}
+                    className="flex items-center justify-center gap-2 flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
                   >
-                    Cancel
+                    <ChevronLeft className="w-4 h-4" />
+                    Back
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCreateStep(2)}
+                    onClick={() => setCreateStep(3)}
                     disabled={!newRoomName.trim() || !newRoomInstrument.trim()}
                     className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
@@ -303,7 +461,7 @@ export default function Dashboard() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setCreateStep(1)}
+                    onClick={() => setCreateStep(2)}
                     className="flex items-center justify-center gap-2 flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" />
