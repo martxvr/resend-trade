@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
-const Header = () => {
+interface HeaderProps {
+  forceScrolled?: boolean;
+}
+
+const Header = ({ forceScrolled = false }: HeaderProps) => {
   const [scrolled, setScrolled] = useState(false);
   const { user, loading } = useAuth();
 
@@ -14,36 +18,35 @@ const Header = () => {
   }, []);
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled 
-          ? 'border-b border-border/50 bg-background/80 backdrop-blur-xl' 
-          : 'border-b border-transparent bg-transparent'
-      }`}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || forceScrolled
+        ? 'border-b border-border/50 bg-background/80 backdrop-blur-xl'
+        : 'border-b border-transparent bg-transparent'
+        }`}
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
-        <a 
-          href="/" 
+        <a
+          href="/"
           className="text-lg font-medium tracking-tight transition-all duration-300 hover:opacity-70"
         >
           TradeBias
         </a>
-        
+
         <nav className="hidden items-center gap-10 md:flex">
-          <a 
-            href="#features" 
+          <a
+            href="#features"
             className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
           >
             Features
           </a>
-          <a 
-            href="#how-it-works" 
+          <a
+            href="#how-it-works"
             className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
           >
             How it works
           </a>
-          <a 
-            href="#tracker" 
+          <a
+            href="#tracker"
             className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
           >
             Tracker
@@ -53,22 +56,30 @@ const Header = () => {
         <div className="flex items-center gap-6">
           {!loading && (
             user ? (
-              <a 
-                href="/dashboard" 
-                className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 rounded-xl"
-              >
-                Dashboard
-              </a>
+              <>
+                <a
+                  href="/dashboard"
+                  className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 rounded-xl"
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="/profile"
+                  className="text-sm font-medium transition-all duration-300 hover:opacity-70"
+                >
+                  Profile
+                </a>
+              </>
             ) : (
               <>
-                <a 
-                  href="/auth" 
+                <a
+                  href="/auth"
                   className="hidden text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground md:block"
                 >
                   Log in
                 </a>
-                <a 
-                  href="/auth" 
+                <a
+                  href="/auth"
                   className="btn-glow border border-foreground bg-foreground px-5 py-2 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 rounded-xl"
                 >
                   Get Started
