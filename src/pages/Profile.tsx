@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { EtherealShadow } from '@/components/ui/ethereal-shadow';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,10 @@ import {
     TrendingUp,
     Clock,
     Target,
-    Save
+    Save,
+    Lock,
+    Key,
+    Camera
 } from 'lucide-react';
 
 interface SectionColumnsProps {
@@ -47,10 +51,35 @@ export default function Profile() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
 
-    const [displayName, setDisplayName] = useState(user?.user_metadata?.display_name || '');
-    const [defaultTimeframe, setDefaultTimeframe] = useState('1h');
-    const [riskLevel, setRiskLevel] = useState('moderate');
+    const [profile, setProfile] = useState<any>(null);
+    const [displayName, setDisplayName] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [email, setEmail] = useState(user?.email || '');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [saving, setSaving] = useState(false);
+    const [updatingAccount, setUpdatingAccount] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchProfile = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (data) {
+                setProfile(data);
+                setDisplayName(data.display_name || data.username || '');
+                setAvatarUrl(data.avatar_url || '');
+            }
+        };
+
+        fetchProfile();
+    }, [user]);
 
     const handleSignOut = async () => {
         await signOut();
@@ -58,15 +87,116 @@ export default function Profile() {
         toast.success('Signed out successfully');
     };
 
-    const handleSaveChanges = async () => {
-        setSaving(true);
-        // Simulate save
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setSaving(false);
-        toast.success('Settings saved');
+    const handleUploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploading(true);
+
+            if (!event.target.files || event.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = event.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const filePath = `${user?.id}/avatar.${fileExt}`;
+            const limit = 2 * 1024 * 1024; // 2MB
+
+            if (file.size > limit) {
+                throw new Error('File is too large. Max size is 2MB.');
+            }
+
+            // Upload the file to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, {
+                    upsert: true,
+                    contentType: file.type
+                });
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            // Get the public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            setAvatarUrl(publicUrl);
+
+            // Auto-save to profile
+            if (user) {
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        avatar_url: publicUrl,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', user.id);
+
+                if (updateError) throw updateError;
+            }
+
+            toast.success('Avatar uploaded successfully!');
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
-    const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'TB';
+    const handleSaveProfile = async () => {
+        if (!user) return;
+        setSaving(true);
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                display_name: displayName,
+                avatar_url: avatarUrl,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id);
+
+        if (error) {
+            toast.error('Failed to update profile: ' + error.message);
+        } else {
+            toast.success('Profile updated');
+        }
+        setSaving(false);
+    };
+
+    const handleUpdateAccount = async () => {
+        setUpdatingAccount(true);
+
+        const updates: any = {};
+        if (email !== user?.email) updates.email = email;
+        if (password) {
+            if (password !== confirmPassword) {
+                toast.error('Passwords do not match');
+                setUpdatingAccount(false);
+                return;
+            }
+            updates.password = password;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            setUpdatingAccount(false);
+            return;
+        }
+
+        const { error } = await supabase.auth.updateUser(updates);
+
+        if (error) {
+            toast.error('Account update failed: ' + error.message);
+        } else {
+            toast.success('Account updated successfully (Check your email if you changed it)');
+            setPassword('');
+            setConfirmPassword('');
+        }
+        setUpdatingAccount(false);
+    };
+
+    const userInitials = displayName?.slice(0, 2).toUpperCase() || user?.email?.slice(0, 2).toUpperCase() || 'TB';
 
     return (
         <EtherealShadow
@@ -91,9 +221,9 @@ export default function Profile() {
                 <div className="mx-auto w-full max-w-4xl space-y-8">
                     {/* Header */}
                     <div className="flex flex-col">
-                        <h1 className="text-3xl font-bold text-white">Trader Profile</h1>
+                        <h1 className="text-3xl font-bold text-white uppercase tracking-wider">Account Settings</h1>
                         <p className="text-white/50 text-base">
-                            Manage your account and trading preferences.
+                            Personalize your presence and secure your account.
                         </p>
                     </div>
 
@@ -102,155 +232,155 @@ export default function Profile() {
                     {/* Profile Section */}
                     <div className="py-2">
                         <SectionColumns
-                            title="Your Avatar"
-                            description="Your profile picture helps identify you in trading rooms."
+                            title="Visual Identity"
+                            description="How other traders see you in the marketplace and rooms."
                         >
-                            <div className="flex items-center gap-4">
-                                <Avatar className="h-20 w-20 border-2 border-white/20">
-                                    <AvatarImage src={`https://avatar.vercel.sh/${user?.email}`} />
-                                    <AvatarFallback className="bg-neutral-800 text-white text-2xl font-bold">
-                                        {userInitials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="text-white/50 text-sm">
-                                    Avatar auto-generated from email
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-6">
+                                    <div className="relative group">
+                                        <Avatar className="h-24 w-24 border-2 border-white/20 shadow-xl transition-all group-hover:border-white/40">
+                                            <AvatarImage src={avatarUrl || `https://avatar.vercel.sh/${user?.email}`} />
+                                            <AvatarFallback className="bg-neutral-800 text-white text-3xl font-bold">
+                                                {userInitials}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <label
+                                            htmlFor="avatar-upload"
+                                            className={`absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-all cursor-pointer rounded-full ${uploading ? 'opacity-100' : ''}`}
+                                        >
+                                            {uploading ? (
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                <Camera className="w-6 h-6 text-white" />
+                                            )}
+                                        </label>
+                                        <input
+                                            type="file"
+                                            id="avatar-upload"
+                                            accept="image/*"
+                                            onChange={handleUploadAvatar}
+                                            disabled={uploading}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        <Label className="text-white/70 text-sm">Profile Picture</Label>
+                                        <p className="text-white/40 text-sm">
+                                            Click on the avatar to upload a new image from your device.
+                                        </p>
+                                        <p className="text-white/30 text-[10px] italic">Supported formats: JPG, PNG. Max 2MB.</p>
+                                    </div>
                                 </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-white/70 text-sm">Display Name</Label>
+                                    <div className="relative group">
+                                        <Input
+                                            placeholder="Enter display name"
+                                            value={displayName}
+                                            onChange={(e) => setDisplayName(e.target.value)}
+                                            className="bg-black/50 border-white/20 text-white placeholder:text-white/20 pl-9 transition-all focus:border-white/40"
+                                        />
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-white/60" />
+                                    </div>
+                                    <p className="text-white/30 text-xs">This is how you'll appear on leaderboard and in rooms.</p>
+                                </div>
+
+                                <Button
+                                    onClick={handleSaveProfile}
+                                    disabled={saving}
+                                    className="bg-white text-black hover:bg-neutral-200 transition-all font-semibold px-8"
+                                >
+                                    {saving ? 'Saving...' : 'Update Profile'}
+                                </Button>
                             </div>
                         </SectionColumns>
 
                         <Separator className="bg-white/10" />
 
                         <SectionColumns
-                            title="Display Name"
-                            description="This name will be shown in trading rooms and leaderboards."
+                            title="Account Security"
+                            description="Change your login credentials. Email changes require verification."
                         >
-                            <div className="w-full space-y-1">
-                                <Label className="sr-only">Name</Label>
-                                <div className="flex w-full items-center gap-2">
-                                    <Input
-                                        placeholder="Enter display name"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        className="bg-black/50 border-white/20 text-white placeholder:text-white/30"
-                                    />
+                            <div className="space-y-6">
+                                <div className="space-y-1.5">
+                                    <Label className="text-white/70 text-sm">Email Address</Label>
+                                    <div className="relative group">
+                                        <Input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="bg-black/50 border-white/20 text-white placeholder:text-white/20 pl-9 transition-all focus:border-white/40"
+                                        />
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-white/60" />
+                                    </div>
                                 </div>
-                                <p className="text-white/40 text-xs">Max 32 characters</p>
-                            </div>
-                        </SectionColumns>
 
-                        <Separator className="bg-white/10" />
-
-                        <SectionColumns
-                            title="Email Address"
-                            description="Your account email address."
-                        >
-                            <div className="flex w-full items-center gap-2">
-                                <Input
-                                    type="email"
-                                    value={user?.email || ''}
-                                    disabled
-                                    className="bg-black/50 border-white/20 text-white/60 cursor-not-allowed"
-                                />
-                                <div className="flex items-center gap-1 text-green-400 text-xs">
-                                    <Shield className="w-3 h-3" />
-                                    Verified
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/70 text-sm">New Password</Label>
+                                        <div className="relative group">
+                                            <Input
+                                                type="password"
+                                                placeholder="••••••••"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="bg-black/50 border-white/20 text-white placeholder:text-white/20 pl-9 transition-all focus:border-white/40"
+                                            />
+                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-white/60" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/70 text-sm">Confirm Password</Label>
+                                        <div className="relative group">
+                                            <Input
+                                                type="password"
+                                                placeholder="••••••••"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="bg-black/50 border-white/20 text-white placeholder:text-white/20 pl-9 transition-all focus:border-white/40"
+                                            />
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-white/60" />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </SectionColumns>
 
-                        <Separator className="bg-white/10" />
-
-                        <SectionColumns
-                            title="User ID"
-                            description="Your unique trader identifier."
-                        >
-                            <div className="font-mono text-sm text-white/40 bg-black/30 px-3 py-2 rounded-lg">
-                                {user?.id || 'Not available'}
+                                <Button
+                                    onClick={handleUpdateAccount}
+                                    disabled={updatingAccount}
+                                    variant="outline"
+                                    className="border-white/20 text-white hover:bg-white/10 font-semibold px-8"
+                                >
+                                    {updatingAccount ? 'Updating...' : 'Update Account'}
+                                </Button>
                             </div>
                         </SectionColumns>
                     </div>
 
                     <Separator className="bg-white/10" />
 
-                    {/* Trading Preferences */}
-                    <div className="flex flex-col">
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5" />
-                            Trading Preferences
-                        </h2>
-                        <p className="text-white/50 text-base">
-                            Customize your trading experience.
-                        </p>
-                    </div>
-
-                    <div className="py-2">
-                        <SectionColumns
-                            title="Default Timeframe"
-                            description="Your preferred chart timeframe when joining rooms."
-                        >
-                            <div className="flex flex-wrap gap-2">
-                                {['5m', '15m', '1h', '4h', '1D'].map((tf) => (
-                                    <button
-                                        key={tf}
-                                        onClick={() => setDefaultTimeframe(tf)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${defaultTimeframe === tf
-                                                ? 'bg-white text-black'
-                                                : 'bg-white/10 text-white/70 hover:bg-white/20'
-                                            }`}
-                                    >
-                                        {tf}
-                                    </button>
-                                ))}
+                    {/* Meta Info */}
+                    <div className="py-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs text-white/30">
+                            <div className="flex items-center gap-2">
+                                <Shield className="w-3 h-3 text-green-500/50" />
+                                Verified Trader Status: ACTIVE
                             </div>
-                        </SectionColumns>
-
-                        <Separator className="bg-white/10" />
-
-                        <SectionColumns
-                            title="Risk Level"
-                            description="Your preferred trading risk tolerance."
-                        >
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { value: 'conservative', label: 'Conservative', color: 'text-green-400' },
-                                    { value: 'moderate', label: 'Moderate', color: 'text-yellow-400' },
-                                    { value: 'aggressive', label: 'Aggressive', color: 'text-red-400' },
-                                ].map((risk) => (
-                                    <button
-                                        key={risk.value}
-                                        onClick={() => setRiskLevel(risk.value)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${riskLevel === risk.value
-                                                ? `bg-white/20 ${risk.color} border border-current`
-                                                : 'bg-white/10 text-white/70 hover:bg-white/20'
-                                            }`}
-                                    >
-                                        {risk.label}
-                                    </button>
-                                ))}
+                            <div className="font-mono">
+                                ID: {user?.id}
                             </div>
-                        </SectionColumns>
+                        </div>
                     </div>
-
-                    <Separator className="bg-white/10" />
 
                     {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-white/5">
                         <Button
-                            onClick={handleSaveChanges}
-                            disabled={saving}
-                            className="bg-white text-black hover:bg-white/90 flex items-center gap-2"
-                        >
-                            <Save className="w-4 h-4" />
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-
-                        <Button
-                            variant="outline"
+                            variant="ghost"
                             onClick={handleSignOut}
-                            className="border-red-500/50 text-red-400 hover:bg-red-500/10 flex items-center gap-2"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/5 flex items-center gap-2 px-0"
                         >
                             <LogOut className="w-4 h-4" />
-                            Sign Out
+                            Sign Out and Clear Session
                         </Button>
                     </div>
                 </div>

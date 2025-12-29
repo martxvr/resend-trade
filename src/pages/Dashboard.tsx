@@ -1,41 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useMyRooms } from '@/hooks/useRoom';
+import { useMyStrategies, Strategy } from '@/hooks/useStrategies';
 import { useRoomTemplates, RoomTemplate, ASSET_CLASSES, TRADING_STYLES } from '@/hooks/useRoomTemplates';
 import { TimeframeSelector } from '@/components/TimeframeSelector';
 import { TemplateSelector, CategorySelector } from '@/components/TemplateSelector';
-import { NotificationBell } from '@/components/NotificationBell';
 import { toast } from 'sonner';
-import { Users, Plus, ArrowRight, LogOut, Copy, X, Hash, ChevronRight, ChevronLeft, Trophy, Filter, Sparkles } from 'lucide-react';
-
-const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
-
+import { Users, Plus, ArrowRight, LayoutGrid, DollarSign, Globe, Lock, Filter, Copy, MoreHorizontal, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import SidebarLayout from '@/components/ui/sidebar-component';
 import { EtherealShadow } from '@/components/ui/ethereal-shadow';
 
+const DEFAULT_TIMEFRAMES = ['5m', '15m', '1h', '4h', '1D'];
+
+// ... (imports remain similar)
+
 export default function Dashboard() {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { rooms, loading: roomsLoading, createRoom, joinByCode, deleteRoom } = useMyRooms();
+  const { user, loading: authLoading } = useAuth();
+  const { strategies, loading: strategiesLoading, createStrategy } = useMyStrategies();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState<'personal' | 'creator'>('personal');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [newRoomInstrument, setNewRoomInstrument] = useState('');
-  const [newRoomTimeframes, setNewRoomTimeframes] = useState<string[]>(DEFAULT_TIMEFRAMES);
-  const [newRoomAssetClass, setNewRoomAssetClass] = useState<string | null>(null);
-  const [newRoomTradingStyle, setNewRoomTradingStyle] = useState<string | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<RoomTemplate | null>(null);
-  const [joinCode, setJoinCode] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [joining, setJoining] = useState(false);
   const [createStep, setCreateStep] = useState(1);
 
-  // Filters
-  const [filterAssetClass, setFilterAssetClass] = useState<string | null>(null);
-  const [filterTradingStyle, setFilterTradingStyle] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  // New Strategy State
+  const [newName, setNewName] = useState('');
+  const [newInstrument, setNewInstrument] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTimeframes, setNewTimeframes] = useState<string[]>(DEFAULT_TIMEFRAMES);
+  const [newIsPublic, setNewIsPublic] = useState(false);
+  const [newPrice, setNewPrice] = useState<number>(0);
+
+  const [selectedTemplate, setSelectedTemplate] = useState<RoomTemplate | null>(null);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,291 +40,218 @@ export default function Dashboard() {
     }
   }, [user, authLoading, navigate]);
 
+  // Set default public/private based on tab
+  useEffect(() => {
+    if (showCreateModal) {
+      setNewIsPublic(activeTab === 'creator');
+    }
+  }, [showCreateModal, activeTab]);
+
   const handleTemplateSelect = (template: RoomTemplate) => {
     setSelectedTemplate(template);
-    setNewRoomTimeframes(template.timeframes);
-    setNewRoomAssetClass(template.asset_class);
-    setNewRoomTradingStyle(template.trading_style);
+    setNewTimeframes(template.timeframes);
   };
 
-  const handleCreateRoom = async () => {
-    if (!newRoomName.trim() || !newRoomInstrument.trim() || newRoomTimeframes.length === 0) return;
-
-    setCreating(true);
-    const { error, room } = await createRoom(newRoomName, newRoomInstrument, newRoomTimeframes);
-    setCreating(false);
-
-    if (error) {
-      toast.error('Failed to create room');
+  const handleCreateStrategy = async () => {
+    if (!newName.trim() || !newInstrument.trim() || newTimeframes.length === 0) {
+      toast.error("Please fill in required fields");
       return;
     }
 
-    toast.success('Room created');
+    setCreating(true);
+    const { error, strategy } = await createStrategy(
+      newName,
+      newInstrument,
+      newTimeframes,
+      newIsPublic,
+      newPrice,
+      newDescription
+    );
+    setCreating(false);
+
+    if (error) {
+      console.error("Creation error:", error);
+      toast.error(`Failed to create strategy: ${error.message || 'Unknown error'}`);
+      return;
+    }
+
+    toast.success(newIsPublic ? 'Strategy Product Launched' : 'Personal Strategy Created');
     setShowCreateModal(false);
     resetCreateForm();
 
-    if (room) {
-      navigate(`/room/${room.id}`);
+    if (strategy) {
+      navigate(`/room/${strategy.id}`);
     }
   };
 
   const resetCreateForm = () => {
-    setNewRoomName('');
-    setNewRoomInstrument('');
-    setNewRoomTimeframes(DEFAULT_TIMEFRAMES);
-    setNewRoomAssetClass(null);
-    setNewRoomTradingStyle(null);
+    setNewName('');
+    setNewInstrument('');
+    setNewDescription('');
+    setNewTimeframes(DEFAULT_TIMEFRAMES);
     setSelectedTemplate(null);
+    setNewIsPublic(false);
+    setNewPrice(0);
     setCreateStep(1);
   };
 
-  const handleJoinRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinCode.trim()) return;
+  // Filter strategies based on tab
+  const personalStrategies = strategies.filter(s => !s.is_public);
+  const creatorStrategies = strategies.filter(s => s.is_public);
+  const displayedStrategies = activeTab === 'personal' ? personalStrategies : creatorStrategies;
 
-    setJoining(true);
-    const { error, room } = await joinByCode(joinCode.trim());
-    setJoining(false);
-
-    if (error) {
-      toast.error('Room not found');
-      return;
-    }
-
-    toast.success('Joined room');
-    setShowJoinModal(false);
-    setJoinCode('');
-
-    if (room) {
-      navigate(`/room/${room.id}`);
-    }
-  };
-
-  const handleCloseRoom = async (roomId: string) => {
-    const { error } = await deleteRoom(roomId);
-    if (error) {
-      toast.error('Failed to close room');
-    } else {
-      toast.success('Room closed');
-    }
-  };
-
-  const copyJoinCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success('Join code copied');
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
-
-  // Filter rooms
-  const filteredRooms = rooms.filter(room => {
-    if (filterAssetClass && (room as any).asset_class !== filterAssetClass) return false;
-    if (filterTradingStyle && (room as any).trading_style !== filterTradingStyle) return false;
-    return true;
-  });
-
-  const activeFilters = (filterAssetClass ? 1 : 0) + (filterTradingStyle ? 1 : 0);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-foreground border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  if (authLoading) return null;
 
   return (
-    <SidebarLayout
-      onCreateRoom={() => setShowCreateModal(true)}
-      onJoinRoom={() => setShowJoinModal(true)}
-    >
-      <EtherealShadow
-        color="rgba(80, 80, 80, 1)"
-        animation={{ scale: 100, speed: 90 }}
-        noise={{ opacity: 0.6, scale: 1.2 }}
-        sizing="fill"
-        className="min-h-screen"
-      >
-        {/* Main Content */}
-        <div className="max-w-5xl mx-auto px-6 pt-12 pb-6">
-          <div className="mb-12">
-            <h1 className="font-display text-3xl font-semibold text-foreground mb-2">
-              Your Rooms
-            </h1>
-            <p className="text-muted-foreground">
-              Create or join trading rooms to share bias signals
-            </p>
-          </div>
+    <SidebarLayout onCreateRoom={() => setShowCreateModal(true)}>
+      <EtherealShadow color="rgba(80, 80, 80, 1)" animation={{ scale: 100, speed: 90 }} noise={{ opacity: 0.6, scale: 1.2 }} sizing="fill" className="min-h-screen">
+        <div className="max-w-6xl mx-auto px-6 pt-12 pb-6">
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Create Room
-            </button>
-            <button
-              onClick={() => setShowJoinModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-            >
-              <Hash className="w-4 h-4" />
-              Join Room
-            </button>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all ${activeFilters > 0
-                ? 'border-accent-purple bg-accent-purple/10 text-accent-purple'
-                : 'border-border/50 text-muted-foreground hover:text-foreground hover:bg-card/50'
-                }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-              {activeFilters > 0 && (
-                <span className="w-5 h-5 bg-accent-purple text-white text-xs rounded-full flex items-center justify-center">
-                  {activeFilters}
-                </span>
-              )}
-            </button>
-          </div>
+          {/* Header & Tabs */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+              <h1 className="font-display text-3xl font-semibold text-foreground mb-4">
+                Dashboard
+              </h1>
 
-          {/* Filters Panel */}
-          {showFilters && (
-            <div className="mb-8 p-4 bg-card/30 border border-border/30 rounded-xl animate-fade-up">
-              <div className="flex flex-wrap gap-6">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-2">Asset Class</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => setFilterAssetClass(null)}
-                      className={`px-2.5 py-1 text-xs rounded-lg transition-all ${!filterAssetClass ? 'bg-foreground text-background' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                      All
-                    </button>
-                    {ASSET_CLASSES.map(ac => (
-                      <button
-                        key={ac.value}
-                        onClick={() => setFilterAssetClass(ac.value)}
-                        className={`px-2.5 py-1 text-xs rounded-lg transition-all ${filterAssetClass === ac.value ? 'bg-accent-green text-white' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                          }`}
-                      >
-                        {ac.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-2">Trading Style</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => setFilterTradingStyle(null)}
-                      className={`px-2.5 py-1 text-xs rounded-lg transition-all ${!filterTradingStyle ? 'bg-foreground text-background' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                      All
-                    </button>
-                    {TRADING_STYLES.map(ts => (
-                      <button
-                        key={ts.value}
-                        onClick={() => setFilterTradingStyle(ts.value)}
-                        className={`px-2.5 py-1 text-xs rounded-lg transition-all ${filterTradingStyle === ts.value ? 'bg-accent-blue text-white' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                          }`}
-                      >
-                        {ts.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="flex p-1 bg-card/50 border border-border/50 rounded-xl w-fit backdrop-blur-sm">
+                <button
+                  onClick={() => setActiveTab('personal')}
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'personal'
+                    ? 'bg-foreground text-background shadow-lg'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  Personal Edge
+                </button>
+                <button
+                  onClick={() => setActiveTab('creator')}
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'creator'
+                    ? 'bg-foreground text-background shadow-lg'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  Creator Studio
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Rooms Grid */}
-          {roomsLoading ? (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all shadow-lg shadow-foreground/10"
+            >
+              <Plus className="w-4 h-4" />
+              {activeTab === 'personal' ? 'New Personal Strategy' : 'New Product'}
+            </button>
+          </div>
+
+          {/* Context Banner */}
+          <div className="mb-8 p-4 rounded-xl border border-border/30 bg-card/20 flex items-center gap-4">
+            {activeTab === 'personal' ? (
+              <>
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><LayoutGrid className="w-5 h-5" /></div>
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Personal Workspace</h3>
+                  <p className="text-xs text-muted-foreground">Private strategies to structure your bias and track stats. Not visible on marketplace.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-2 bg-accent-purple/10 rounded-lg text-accent-purple"><Globe className="w-5 h-5" /></div>
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Creator Studio</h3>
+                  <p className="text-xs text-muted-foreground">Monetize your edge. Manage public products, subscriptions, and verified track records.</p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Grid */}
+          {strategiesLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin h-6 w-6 border-2 border-foreground border-t-transparent rounded-full" />
             </div>
-          ) : filteredRooms.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-border/50 rounded-2xl">
-              <div className="w-12 h-12 bg-card/50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6 text-muted-foreground" />
+          ) : displayedStrategies.length === 0 ? (
+            <div className="text-center py-20 border border-dashed border-border/50 rounded-2xl bg-card/10">
+              <div className="w-16 h-16 bg-card/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border/20">
+                {activeTab === 'personal' ? <LayoutGrid className="w-8 h-8 text-muted-foreground" /> : <DollarSign className="w-8 h-8 text-muted-foreground" />}
               </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                {rooms.length === 0 ? 'No rooms yet' : 'No matching rooms'}
+              <h3 className="text-xl font-medium text-foreground mb-2">
+                {activeTab === 'personal' ? 'No Personal Strategies' : 'No Active Products'}
               </h3>
-              <p className="text-muted-foreground text-sm mb-6">
-                {rooms.length === 0
-                  ? 'Create your first trading room or join an existing one'
-                  : 'Try adjusting your filters'}
+              <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+                {activeTab === 'personal'
+                  ? "Start by structuring your day-to-day trading bias."
+                  : "You haven't launched any monetizable products yet."}
               </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
+              >
+                {activeTab === 'personal' ? 'Create Strategy' : 'Launch Product'}
+              </button>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {filteredRooms.map((room) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {displayedStrategies.map((strategy) => (
                 <div
-                  key={room.id}
-                  className="group bg-card/30 border border-border/30 rounded-2xl p-6 hover:border-border/60 hover:bg-card/50 transition-all duration-300"
+                  key={strategy.id}
+                  onClick={() => navigate(`/room/${strategy.id}`)}
+                  className="group relative bg-card/30 border border-border/30 rounded-2xl p-6 hover:border-accent-purple/30 hover:bg-card/50 transition-all duration-300 cursor-pointer overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="font-display text-lg font-semibold text-foreground">
-                          {room.name}
-                        </h3>
-                        <span className="px-2.5 py-0.5 bg-accent-purple/10 text-accent-purple text-xs font-medium rounded-full">
-                          {room.instrument}
-                        </span>
-                        {(room as any).asset_class && (
-                          <span className="px-2 py-0.5 bg-accent-green/10 text-accent-green text-[10px] font-medium rounded-full">
-                            {ASSET_CLASSES.find(a => a.value === (room as any).asset_class)?.label}
-                          </span>
-                        )}
-                        {(room as any).trading_style && (
-                          <span className="px-2 py-0.5 bg-accent-blue/10 text-accent-blue text-[10px] font-medium rounded-full">
-                            {TRADING_STYLES.find(t => t.value === (room as any).trading_style)?.label}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
+                  <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowRight className="w-5 h-5 text-muted-foreground -rotate-45 group-hover:rotate-0 transition-transform duration-300" />
+                  </div>
+
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-card to-background border border-border/20 flex items-center justify-center">
+                      <span className="font-display font-bold text-lg text-foreground/80">
+                        {strategy.instrument.substring(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    {strategy.is_public && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium border border-green-500/20">
+                        <Globe className="w-3 h-3" />
+                        Public
+                      </span>
+                    )}
+                    {!strategy.is_public && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-medium border border-blue-500/20">
+                        <Lock className="w-3 h-3" />
+                        Private
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="font-display text-lg font-semibold text-foreground mb-1 group-hover:text-accent-purple transition-colors">
+                    {strategy.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
+                    {strategy.description || 'No description provided.'}
+                  </p>
+
+                  <div className="flex items-center gap-3 mt-auto pt-4 border-t border-border/10">
+                    {strategy.is_public ? (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Users className="w-3.5 h-3.5" />
-                          {room.member_count} online
-                        </span>
-                        <button
-                          onClick={() => copyJoinCode(room.join_code)}
-                          className="flex items-center gap-1.5 hover:text-foreground transition-colors"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                          {room.join_code}
-                        </button>
-                        <span className="text-xs">
-                          {room.timeframes?.length || 0} timeframes
-                        </span>
+                          <span>{strategy.member_count || 0} Subscriptions</span>
+                        </div>
+                        <div className="w-1 h-1 bg-border rounded-full" />
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                          {strategy.price_monthly > 0 ? (
+                            <span className="text-accent-green">${strategy.price_monthly}/mo</span>
+                          ) : (
+                            <span className="text-muted-foreground">Free</span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                        <span>Personal Use</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {room.owner_id === user?.id && (
-                        <button
-                          onClick={() => handleCloseRoom(room.id)}
-                          className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
-                          title="Close room"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate(`/room/${room.id}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-foreground/10 text-foreground font-medium rounded-xl hover:bg-foreground/20 transition-all group-hover:translate-x-0.5"
-                      >
-                        Enter
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -335,177 +259,136 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Create Room Modal - Multi-step */}
+        {/* Create Flow Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-lg animate-scale-in max-h-[90vh] overflow-y-auto">
-              {/* Step indicator */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-xl font-semibold text-foreground">
-                  {createStep === 1 ? 'Choose Template' : createStep === 2 ? 'Room Details' : 'Configure Timeframes'}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 1 ? 'bg-foreground' : 'bg-border'}`} />
-                  <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 2 ? 'bg-foreground' : 'bg-border'}`} />
-                  <div className={`w-2 h-2 rounded-full transition-colors ${createStep === 3 ? 'bg-foreground' : 'bg-border'}`} />
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-card border border-border/50 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
+              <div className="px-8 py-6 border-b border-border/10 flex items-center justify-between sticky top-0 bg-card/95 backdrop-blur-xl z-10">
+                <div>
+                  <h2 className="font-display text-xl font-semibold text-foreground">
+                    {activeTab === 'personal' ? 'Create Personal Strategy' : 'Launch New Product'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Step {createStep} of {activeTab === 'personal' ? '2' : '3'}
+                  </p>
                 </div>
+                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
               </div>
 
-              {createStep === 1 ? (
-                <div className="space-y-5">
-                  <TemplateSelector
-                    onSelect={handleTemplateSelect}
-                    selectedId={selectedTemplate?.id}
-                  />
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCreateModal(false);
-                        resetCreateForm();
-                      }}
-                      className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreateStep(2)}
-                      className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all flex items-center justify-center gap-2"
-                    >
-                      {selectedTemplate ? 'Use Template' : 'Custom Setup'}
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+              <div className="p-8">
+                {/* Step 1: Template (Common) */}
+                {createStep === 1 && (
+                  <div className="space-y-6">
+                    <TemplateSelector onSelect={handleTemplateSelect} selectedId={selectedTemplate?.id} />
+                    <div className="flex justify-end pt-4">
+                      <button onClick={() => setCreateStep(2)} className="flex items-center gap-2 px-6 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all">
+                        Continue <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : createStep === 2 ? (
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Room Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newRoomName}
-                      onChange={(e) => setNewRoomName(e.target.value)}
-                      className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
-                      placeholder="Morning Session"
-                      autoFocus
-                    />
+                )}
+
+                {/* Step 2: Details (Common + Description) */}
+                {createStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">Strategy Name</label>
+                        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Nifty Intraday" className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl focus:ring-2 focus:ring-accent-purple/50 outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Instrument</label>
+                        <input value={newInstrument} onChange={e => setNewInstrument(e.target.value)} placeholder="e.g. NIFTY, ES" className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl focus:ring-2 focus:ring-accent-purple/50 outline-none" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">Description (Optional)</label>
+                        <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Describe your edge..." className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl focus:ring-2 focus:ring-accent-purple/50 outline-none resize-none h-20" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">Timeframes</label>
+                        <TimeframeSelector selected={newTimeframes} onChange={setNewTimeframes} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button onClick={() => setCreateStep(1)} className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50">Back</button>
+
+                      {/* If Personal, this is the final step */}
+                      {activeTab === 'personal' ? (
+                        <button
+                          onClick={handleCreateStrategy}
+                          disabled={creating || !newName || !newInstrument}
+                          className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {creating ? <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" /> : "Create Strategy"}
+                        </button>
+                      ) : (
+                        // If Creator, go to next step
+                        <button
+                          onClick={() => setCreateStep(3)}
+                          disabled={!newName || !newInstrument}
+                          className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 disabled:opacity-50"
+                        >
+                          Next: Monetization
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Instrument / Market
-                    </label>
-                    <input
-                      type="text"
-                      value={newRoomInstrument}
-                      onChange={(e) => setNewRoomInstrument(e.target.value)}
-                      className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50"
-                      placeholder="ES, NQ, BTC..."
-                    />
+                )}
+
+                {/* Step 3: Monetization (Creator Only) */}
+                {createStep === 3 && activeTab === 'creator' && (
+                  <div className="space-y-8">
+                    <div className="p-4 rounded-xl border border-border/40 bg-card/30 space-y-4">
+                      <label className="flex items-start gap-4 cursor-pointer">
+                        <div className="relative flex items-center">
+                          <input type="checkbox" checked={newIsPublic} onChange={e => setNewIsPublic(e.target.checked)} className="w-5 h-5 border-border rounded text-accent-purple focus:ring-accent-purple bg-transparent" />
+                        </div>
+                        <div>
+                          <span className="block font-medium text-foreground">Public Marketplace List</span>
+                          <span className="block text-sm text-muted-foreground mt-1">Make visible to everyone. Uncheck to keep as 'Draft' (Private).</span>
+                        </div>
+                      </label>
+
+                      {newIsPublic && (
+                        <div className="pl-9 animate-fade-in relative">
+                          <label className="block text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">Monthly Subscription Price ($)</label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <input
+                              type="number"
+                              min="0"
+                              value={newPrice}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value);
+                                setNewPrice(isNaN(val) ? 0 : val);
+                              }}
+                              className="w-full pl-9 pr-4 py-2 bg-background border border-border/50 rounded-lg focus:ring-2 focus:ring-green-500/50 outline-none font-mono"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">Set to 0 for free access. Platform fee 10%.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <button onClick={() => setCreateStep(2)} className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50">Back</button>
+                      <button
+                        onClick={handleCreateStrategy}
+                        disabled={creating}
+                        className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {creating ? <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" /> : "Launch Product"}
+                      </button>
+                    </div>
                   </div>
-                  <CategorySelector
-                    assetClass={newRoomAssetClass}
-                    tradingStyle={newRoomTradingStyle}
-                    onAssetClassChange={setNewRoomAssetClass}
-                    onTradingStyleChange={setNewRoomTradingStyle}
-                  />
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCreateStep(1)}
-                      className="flex items-center justify-center gap-2 flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreateStep(3)}
-                      disabled={!newRoomName.trim() || !newRoomInstrument.trim()}
-                      className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    Select up to 7 timeframes for bias tracking. Drag to reorder.
-                  </p>
-                  <TimeframeSelector
-                    selected={newRoomTimeframes}
-                    onChange={setNewRoomTimeframes}
-                  />
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCreateStep(2)}
-                      className="flex items-center justify-center gap-2 flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreateRoom}
-                      disabled={creating || newRoomTimeframes.length === 0}
-                      className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50"
-                    >
-                      {creating ? 'Creating...' : 'Create Room'}
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
-
-        {/* Join Room Modal */}
-        {showJoinModal && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-card border border-border/50 rounded-2xl p-8 w-full max-w-md animate-scale-in">
-              <h2 className="font-display text-xl font-semibold text-foreground mb-6">
-                Join Trading Room
-              </h2>
-              <form onSubmit={handleJoinRoom} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Room Code
-                  </label>
-                  <input
-                    type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toLowerCase())}
-                    className="w-full px-4 py-3 bg-background border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-purple/50 font-mono tracking-wider"
-                    placeholder="abc123xy"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowJoinModal(false)}
-                    className="flex-1 py-3 border border-border/50 text-foreground font-medium rounded-xl hover:bg-card/50 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={joining || !joinCode.trim()}
-                    className="flex-1 py-3 bg-foreground text-background font-medium rounded-xl hover:bg-foreground/90 transition-all disabled:opacity-50"
-                  >
-                    {joining ? 'Joining...' : 'Join'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
       </EtherealShadow>
     </SidebarLayout>
   );

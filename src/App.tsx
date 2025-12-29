@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Marketplace from "./pages/Marketplace";
 import Room from "./pages/Room";
 import Embed from "./pages/Embed";
 import Leaderboard from "./pages/Leaderboard";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/room/:roomId" element={<Room />} />
             <Route path="/embed/:roomId" element={<Embed />} />
             <Route path="/leaderboard" element={<Leaderboard />} />

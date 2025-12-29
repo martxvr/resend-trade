@@ -11,6 +11,7 @@ import {
     ChevronRight,
     Plus,
     UserPlus,
+    Globe,
     LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";

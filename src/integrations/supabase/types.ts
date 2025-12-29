@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -57,7 +57,7 @@ export type Database = {
             foreignKeyName: "bias_history_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "rooms"
+            referencedRelation: "strategies"
             referencedColumns: ["id"]
           },
         ]
@@ -95,7 +95,70 @@ export type Database = {
             foreignKeyName: "bias_outcomes_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "rooms"
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biases: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          creator_id: string
+          direction: string
+          id: string
+          instrument: string
+          invalidation_level: string | null
+          logic_context: string | null
+          status: string
+          strategy_id: string
+          thesis: string
+          timeframe: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          creator_id: string
+          direction: string
+          id?: string
+          instrument: string
+          invalidation_level?: string | null
+          logic_context?: string | null
+          status: string
+          strategy_id: string
+          thesis: string
+          timeframe: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          creator_id?: string
+          direction?: string
+          id?: string
+          instrument?: string
+          invalidation_level?: string | null
+          logic_context?: string | null
+          status?: string
+          strategy_id?: string
+          thesis?: string
+          timeframe?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biases_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "biases_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
             referencedColumns: ["id"]
           },
         ]
@@ -135,21 +198,27 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
+          display_name: string | null
           id: string
           updated_at: string
           user_id: string
           username: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           updated_at?: string
           user_id: string
           username?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           updated_at?: string
           user_id?: string
@@ -157,205 +226,141 @@ export type Database = {
         }
         Relationships: []
       }
-      room_members: {
+      strategies: {
         Row: {
-          bias: string
-          id: string
-          is_online: boolean
-          joined_at: string
-          room_id: string
-          timeframe_biases: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          bias?: string
-          id?: string
-          is_online?: boolean
-          joined_at?: string
-          room_id: string
-          timeframe_biases?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          bias?: string
-          id?: string
-          is_online?: boolean
-          joined_at?: string
-          room_id?: string
-          timeframe_biases?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "room_members_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      room_tags: {
-        Row: {
-          created_at: string
-          id: string
-          room_id: string
-          tag: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          room_id: string
-          tag: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          room_id?: string
-          tag?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "room_tags_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      room_templates: {
-        Row: {
-          asset_class: Database["public"]["Enums"]["asset_class"] | null
           created_at: string
           description: string | null
           id: string
-          is_system: boolean
-          name: string
-          timeframes: string[]
-          trading_style: Database["public"]["Enums"]["trading_style"] | null
-        }
-        Insert: {
-          asset_class?: Database["public"]["Enums"]["asset_class"] | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_system?: boolean
-          name: string
-          timeframes: string[]
-          trading_style?: Database["public"]["Enums"]["trading_style"] | null
-        }
-        Update: {
-          asset_class?: Database["public"]["Enums"]["asset_class"] | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_system?: boolean
-          name?: string
-          timeframes?: string[]
-          trading_style?: Database["public"]["Enums"]["trading_style"] | null
-        }
-        Relationships: []
-      }
-      rooms: {
-        Row: {
-          asset_class: Database["public"]["Enums"]["asset_class"] | null
-          created_at: string
-          id: string
           instrument: string
           is_active: boolean
+          is_public: boolean
           join_code: string
           name: string
           owner_id: string
           participation_mode: string
-          timeframes: string[]
-          trading_style: Database["public"]["Enums"]["trading_style"] | null
+          price_monthly: number
+          timeframes: Json
           updated_at: string
         }
         Insert: {
-          asset_class?: Database["public"]["Enums"]["asset_class"] | null
           created_at?: string
+          description?: string | null
           id?: string
           instrument: string
           is_active?: boolean
+          is_public?: boolean
           join_code?: string
           name: string
           owner_id: string
           participation_mode?: string
-          timeframes?: string[]
-          trading_style?: Database["public"]["Enums"]["trading_style"] | null
+          price_monthly?: number
+          timeframes?: Json
           updated_at?: string
         }
         Update: {
-          asset_class?: Database["public"]["Enums"]["asset_class"] | null
           created_at?: string
+          description?: string | null
           id?: string
           instrument?: string
           is_active?: boolean
+          is_public?: boolean
           join_code?: string
           name?: string
           owner_id?: string
           participation_mode?: string
-          timeframes?: string[]
-          trading_style?: Database["public"]["Enums"]["trading_style"] | null
+          price_monthly?: number
+          timeframes?: Json
           updated_at?: string
         }
         Relationships: []
       }
-      user_follows: {
+      strategy_co_owners: {
         Row: {
           created_at: string
-          follower_id: string
-          following_id: string
           id: string
+          strategy_id: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          follower_id: string
-          following_id: string
           id?: string
+          strategy_id: string
+          user_id: string
         }
         Update: {
           created_at?: string
-          follower_id?: string
-          following_id?: string
           id?: string
+          strategy_id?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "strategy_co_owners_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          strategy_id: string
+          subscriber_id: string
+          tiers: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          strategy_id: string
+          subscriber_id: string
+          tiers?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          strategy_id?: string
+          subscriber_id?: string
+          tiers?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      trader_stats: {
-        Row: {
-          accuracy_percentage: number | null
-          correct_predictions: number | null
-          rooms_participated: number | null
-          total_predictions: number | null
-          user_id: string | null
-          username: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      reset_room_biases: { Args: { p_room_id: string }; Returns: undefined }
+      [_ in never]: never
     }
     Enums: {
       asset_class: "forex" | "crypto" | "indices" | "commodities" | "stocks"
       notification_type:
-        | "bias_change"
-        | "follow"
-        | "room_invite"
-        | "accuracy_milestone"
+      | "bias_change"
+      | "follow"
+      | "room_invite"
+      | "accuracy_milestone"
       trading_style:
-        | "scalping"
-        | "day_trading"
-        | "swing_trading"
-        | "position_trading"
-        | "news_trading"
+      | "scalping"
+      | "day_trading"
+      | "swing_trading"
+      | "position_trading"
+      | "news_trading"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -363,140 +368,99 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type PublicSchema = Database["public"]
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  PublicTableNameOrOptions extends
+  | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+  ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+    Database[PublicTableNameOrOptions["schema"]]["Views"])
+  : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+    Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+  ? R
+  : never
+  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+    PublicSchema["Views"])
+  ? (PublicSchema["Tables"] &
+    PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  PublicTableNameOrOptions extends
+  | keyof PublicSchema["Tables"]
+  | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+  ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Insert: infer I
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? I
+  : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+  ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  PublicTableNameOrOptions extends
+  | keyof PublicSchema["Tables"]
+  | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+  ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Update: infer U
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? U
+  : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+  ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  PublicEnumNameOrOptions extends
+  | keyof PublicSchema["Enums"]
+  | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+  ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof PublicSchema["CompositeTypes"]
+  | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      asset_class: ["forex", "crypto", "indices", "commodities", "stocks"],
-      notification_type: [
-        "bias_change",
-        "follow",
-        "room_invite",
-        "accuracy_milestone",
-      ],
-      trading_style: [
-        "scalping",
-        "day_trading",
-        "swing_trading",
-        "position_trading",
-        "news_trading",
-      ],
-    },
-  },
-} as const
+  ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+  ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
