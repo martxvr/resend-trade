@@ -102,94 +102,154 @@ export type Database = {
       }
       biases: {
         Row: {
-          closed_at: string | null
+          asset_class: string | null
+          bias: string
+          confidence: number
           created_at: string
-          creator_id: string
-          direction: string
+          description: string | null
           id: string
-          instrument: string
-          invalidation_level: string | null
-          logic_context: string | null
-          status: string
-          strategy_id: string
-          thesis: string
+          reasoning: string | null
           timeframe: string
+          trading_style: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          closed_at?: string | null
+          asset_class?: string | null
+          bias: string
+          confidence: number
           created_at?: string
-          creator_id: string
-          direction: string
+          description?: string | null
           id?: string
-          instrument: string
-          invalidation_level?: string | null
-          logic_context?: string | null
-          status: string
-          strategy_id: string
-          thesis: string
+          reasoning?: string | null
           timeframe: string
+          trading_style?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          closed_at?: string | null
+          asset_class?: string | null
+          bias?: string
+          confidence?: number
           created_at?: string
-          creator_id?: string
-          direction?: string
+          description?: string | null
           id?: string
-          instrument?: string
-          invalidation_level?: string | null
-          logic_context?: string | null
-          status?: string
-          strategy_id?: string
-          thesis?: string
+          reasoning?: string | null
           timeframe?: string
+          trading_style?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "biases_creator_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "biases_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      checklist_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          options: Json | null
+          question: string
+          required_answer: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          options?: Json | null
+          question: string
+          required_answer?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          options?: Json | null
+          question?: string
+          required_answer?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "biases_strategy_id_fkey"
-            columns: ["strategy_id"]
+            foreignKeyName: "checklist_items_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "strategies"
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_waitlist: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_waitlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
       notifications: {
         Row: {
-          created_at: string
-          data: Json | null
+          created_at: string | null
           id: string
-          is_read: boolean
+          is_read: boolean | null
           message: string
+          related_id: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }
         Insert: {
-          created_at?: string
-          data?: Json | null
+          created_at?: string | null
           id?: string
-          is_read?: boolean
+          is_read?: boolean | null
           message: string
+          related_id?: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }
         Update: {
-          created_at?: string
-          data?: Json | null
+          created_at?: string | null
           id?: string
-          is_read?: boolean
+          is_read?: boolean | null
           message?: string
+          related_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
@@ -199,95 +259,103 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
-          display_name: string | null
+          email: string | null
+          full_name: string | null
           id: string
+          location: string | null
           updated_at: string
-          user_id: string
           username: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
-          display_name?: string | null
-          id?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          location?: string | null
           updated_at?: string
-          user_id: string
           username?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
-          display_name?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
+          location?: string | null
           updated_at?: string
-          user_id?: string
           username?: string | null
+          website?: string | null
         }
         Relationships: []
       }
       strategies: {
         Row: {
+          accuracy: number | null
           created_at: string
+          creator_id: string
           description: string | null
           id: string
-          instrument: string
-          is_active: boolean
-          is_public: boolean
-          join_code: string
+          image_url: string | null
+          is_invite_only: boolean | null
           name: string
-          owner_id: string
-          participation_mode: string
-          price_monthly: number
-          timeframes: Json
-          updated_at: string
+          subscribers_count: number | null
         }
         Insert: {
+          accuracy?: number | null
           created_at?: string
+          creator_id: string
           description?: string | null
-          id?: string
-          instrument: string
-          is_active?: boolean
-          is_public?: boolean
-          join_code?: string
+          id: string
+          image_url?: string | null
+          is_invite_only?: boolean | null
           name: string
-          owner_id: string
-          participation_mode?: string
-          price_monthly?: number
-          timeframes?: Json
-          updated_at?: string
+          subscribers_count?: number | null
         }
         Update: {
+          accuracy?: number | null
           created_at?: string
+          creator_id?: string
           description?: string | null
           id?: string
-          instrument?: string
-          is_active?: boolean
-          is_public?: boolean
-          join_code?: string
+          image_url?: string | null
+          is_invite_only?: boolean | null
           name?: string
-          owner_id?: string
-          participation_mode?: string
-          price_monthly?: number
-          timeframes?: Json
-          updated_at?: string
+          subscribers_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "room_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strategy_co_owners: {
         Row: {
+          added_at: string
           created_at: string
           id: string
           strategy_id: string
           user_id: string
         }
         Insert: {
+          added_at?: string
           created_at?: string
           id?: string
           strategy_id: string
           user_id: string
         }
         Update: {
+          added_at?: string
           created_at?: string
           id?: string
           strategy_id?: string
@@ -301,35 +369,36 @@ export type Database = {
             referencedRelation: "strategies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "strategy_co_owners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       subscriptions: {
         Row: {
           created_at: string
           id: string
-          status: string
-          strategy_id: string
-          subscriber_id: string
-          tiers: string | null
-          updated_at: string
+          status: string | null
+          strategy_id: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
-          status?: string
-          strategy_id: string
-          subscriber_id: string
-          tiers?: string | null
-          updated_at?: string
+          status?: string | null
+          strategy_id?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
-          status?: string
-          strategy_id?: string
-          subscriber_id?: string
-          tiers?: string | null
-          updated_at?: string
+          status?: string | null
+          strategy_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -337,6 +406,13 @@ export type Database = {
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -368,7 +444,7 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database["public"]
+type PublicSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
   PublicTableNameOrOptions extends

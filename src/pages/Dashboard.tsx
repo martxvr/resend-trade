@@ -124,7 +124,8 @@ export default function Dashboard() {
                 >
                   Personal Edge
                 </button>
-                <button
+                {/* Creator Studio Tab temporarily disabled per user request */}
+                {/* <button
                   onClick={() => setActiveTab('creator')}
                   className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'creator'
                     ? 'bg-foreground text-background shadow-lg'
@@ -132,7 +133,7 @@ export default function Dashboard() {
                     }`}
                 >
                   Creator Studio
-                </button>
+                </button> */}
               </div>
             </div>
 

@@ -46,6 +46,12 @@ const Header = ({ forceScrolled = false }: HeaderProps) => {
             How it works
           </a>
           <a
+            href="#pricing"
+            className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
+          >
+            Pricing
+          </a>
+          <a
             href="#tracker"
             className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
           >

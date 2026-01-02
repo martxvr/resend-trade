@@ -1,12 +1,27 @@
+import { useEffect } from 'react';
 import { ArrowRight } from "lucide-react";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 const Hero = () => {
+  useEffect(() => {
+    // Re-initialize Unicorn Studio after render
+    if ((window as any).UnicornStudio) {
+      (window as any).UnicornStudio.init();
+    }
+  }, []);
+
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
+      {/* Unicorn Studio Background */}
+      <div
+        data-us-project="p7Ff6pfTrb5Gs59C7nLC"
+        className="absolute inset-0 z-0"
+      ></div>
+
       {/* Ambient glow effects */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-accent-purple/10 blur-[120px] animate-pulse-glow" />
       <div className="absolute bottom-1/4 -right-32 w-80 h-80 rounded-full bg-accent-green/8 blur-[100px] animate-pulse-glow" style={{ animationDelay: '1.5s' }} />
-      
+
       {/* Subtle grid background */}
       <div className="absolute inset-0 opacity-[0.03]">
         <div className="h-full w-full" style={{
@@ -26,8 +41,8 @@ const Hero = () => {
       <div className="absolute top-1/2 right-[10%] hidden lg:block">
         <div className="float w-1.5 h-1.5 rounded-full bg-accent-amber/40" style={{ animationDelay: '1s' }} />
       </div>
-      
-      <div className="container relative mx-auto px-6">
+
+      <div className="container relative z-10 mx-auto px-6">
         <div className="max-w-3xl">
           {/* Eyebrow with accent */}
           <div className="mb-8 animate-fade-up">
@@ -36,31 +51,30 @@ const Hero = () => {
               Precision trading tools
             </span>
           </div>
-          
+
           {/* Hero headline with editorial serif */}
           <h1 className="mb-8 font-display text-5xl font-medium tracking-tight leading-[1.1] md:text-6xl lg:text-7xl animate-fade-up-delay-1">
             Bias tracking
             <br />
             <span className="text-muted-foreground">for traders</span>
           </h1>
-          
+
           {/* Subheadline */}
           <p className="mb-12 max-w-lg text-lg text-muted-foreground leading-relaxed animate-fade-up-delay-2">
-            Eliminate emotional trading. Track your market bias across 
+            Eliminate emotional trading. Track your market bias across
             multiple timeframes and make decisions with clarity.
           </p>
-          
+
           {/* CTAs */}
           <div className="flex items-center gap-8 animate-fade-up-delay-3">
-            <a 
-              href="#tracker" 
-              className="group btn-glow inline-flex items-center gap-2 border border-foreground bg-foreground px-6 py-3 text-sm font-medium text-background"
+            <ShinyButton
+              onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
+              className="py-5"
             >
               Start Tracking
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </a>
-            <a 
-              href="#how-it-works" 
+            </ShinyButton>
+            <a
+              href="#how-it-works"
               className="link-hover text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground pb-0.5"
             >
               How it works
@@ -68,7 +82,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Decorative line */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </section>

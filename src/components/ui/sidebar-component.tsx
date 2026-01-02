@@ -12,7 +12,8 @@ import {
     Plus,
     UserPlus,
     Globe,
-    LogOut
+    LogOut,
+    ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,17 +57,38 @@ function NavItem({ icon, label, isActive, onClick, isCollapsed }: NavItemProps) 
     );
 }
 
+import { CreateStrategyModal } from '@/components/modals/CreateStrategyModal';
+import { JoinRoomModal } from '@/components/modals/JoinRoomModal';
+
 export function SidebarLayout({ children, onCreateRoom, onJoinRoom }: SidebarLayoutProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
+    // Global modal control
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isJoinOpen, setIsJoinOpen] = useState(false);
+
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
     const isActive = (path: string) => location.pathname === path;
 
+    // Use passed prop if available (legacy/override), otherwise use internal modal
+    const handleCreateClick = onCreateRoom || (() => setIsCreateOpen(true));
+    const handleJoinClick = onJoinRoom || (() => setIsJoinOpen(true));
+
     return (
         <div className="flex min-h-screen bg-[#0a0a0a] text-white">
+            {/* Global Modals */}
+            <CreateStrategyModal
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+            />
+            <JoinRoomModal
+                isOpen={isJoinOpen}
+                onClose={() => setIsJoinOpen(false)}
+            />
+
             {/* Sidebar */}
             <aside
                 className={cn(
@@ -121,13 +143,13 @@ export function SidebarLayout({ children, onCreateRoom, onJoinRoom }: SidebarLay
                         <NavItem
                             icon={<Plus size={18} />}
                             label="Create Room"
-                            onClick={onCreateRoom}
+                            onClick={handleCreateClick}
                             isCollapsed={isCollapsed}
                         />
                         <NavItem
                             icon={<UserPlus size={18} />}
                             label="Join Room"
-                            onClick={onJoinRoom}
+                            onClick={handleJoinClick}
                             isCollapsed={isCollapsed}
                         />
                     </div>
@@ -152,10 +174,17 @@ export function SidebarLayout({ children, onCreateRoom, onJoinRoom }: SidebarLay
                             isCollapsed={isCollapsed}
                         />
                         <NavItem
+                            icon={<ClipboardCheck size={18} />}
+                            label="Trading Plan"
+                            isActive={isActive('/checklist')}
+                            onClick={() => navigate('/checklist')}
+                            isCollapsed={isCollapsed}
+                        />
+                        <NavItem
                             icon={<Trophy size={18} />}
-                            label="Leaderboard"
-                            isActive={isActive('/leaderboard')}
-                            onClick={() => navigate('/leaderboard')}
+                            label="Creator Studio"
+                            isActive={isActive('/creator-studio')}
+                            onClick={() => navigate('/creator-studio')}
                             isCollapsed={isCollapsed}
                         />
                     </div>

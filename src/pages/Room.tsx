@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useStrategy, Bias, useStrategyActions } from '@/hooks/useStrategies';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Check, X, AlertTriangle, Clock, Globe, Lock, TrendingUp, TrendingDown, Minus, Pencil, Trash2, Settings, Share2, Link as LinkIcon, Camera, Download, ChevronLeft, ChevronRight, GripVertical, User, UserPlus, UserMinus, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X, AlertTriangle, Clock, Globe, Lock, TrendingUp, TrendingDown, Minus, Pencil, Trash2, Settings, Share2, Link as LinkIcon, Camera, Download, ChevronLeft, ChevronRight, GripVertical, User, UserPlus, UserMinus, RotateCcw, ClipboardCheck } from 'lucide-react';
 import { Reorder } from "framer-motion";
 import { PremiumBackground } from '@/components/ui/premium-background';
 import RoomBiasTracker from '@/components/RoomBiasTracker';
+import { ChecklistRunner } from '@/components/ChecklistRunner';
 import html2canvas from 'html2canvas';
 
 // Form Types
@@ -39,6 +40,7 @@ export default function Room() {
   const [showDefineModal, setShowDefineModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
   const [shareTab, setShareTab] = useState<'snapshot' | 'link' | 'embed'>('snapshot');
   const [form, setForm] = useState<BiasFormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -452,6 +454,13 @@ export default function Room() {
                     >
                       <Settings className="w-4 h-4" />
                     </button>
+                    <button
+                      onClick={() => setShowChecklist(true)}
+                      className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full hover:bg-emerald-500/20 transition-colors text-emerald-500 hover:text-emerald-400"
+                      title="Verify Trade"
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
@@ -461,23 +470,6 @@ export default function Room() {
               </p>
             </div>
 
-            {/* Stats Card */}
-            <div className="flex gap-6 items-end bg-white/5 border border-white/10 px-6 py-4 rounded-xl backdrop-blur-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold font-mono text-white">{stats?.winRate ?? 0}%</div>
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1 font-medium">Win Rate</div>
-              </div>
-              <div className="w-px h-8 bg-white/10" />
-              <div className="text-center">
-                <div className="text-2xl font-bold font-mono text-white">{stats?.totalBiases ?? 0}</div>
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1 font-medium">Signals</div>
-              </div>
-              <div className="w-px h-8 bg-white/10" />
-              <div className="text-center">
-                <div className="text-2xl font-bold font-mono text-emerald-400">{stats?.validatedCount ?? 0}</div>
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1 font-medium">Proven</div>
-              </div>
-            </div>
           </div>
 
           {/* Core UI: Room Bias Tracker (The visual cards) */}
@@ -594,6 +586,9 @@ export default function Room() {
 
         </div>
       </PremiumBackground >
+
+      {/* Checklist Modal */}
+      <ChecklistRunner isOpen={showChecklist} onClose={() => setShowChecklist(false)} />
 
       {/* Define Edge Modal */}
       {
