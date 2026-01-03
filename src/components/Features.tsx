@@ -53,20 +53,9 @@ const Features = () => {
   };
 
   return (
-    <WavyBackground
+    <section
       id="features"
-      containerClassName="py-32"
-      className="container mx-auto px-6"
-      backgroundFill="#000000"
-      waveOpacity={0.1}
-      speed="slow"
-      colors={[
-        "#7c3aed", // violet-600
-        "#4f46e5", // indigo-600
-        "#2563eb", // blue-600
-        "#8b5cf6", // violet-500
-        "#000000"  // black to blend out
-      ]}
+      className="py-32 container mx-auto px-6"
     >
       <div
         ref={ref}
@@ -123,7 +112,7 @@ const Features = () => {
           </div>
         ))}
       </div>
-    </WavyBackground>
+    </section>
   );
 };
 
