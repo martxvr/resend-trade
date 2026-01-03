@@ -107,11 +107,12 @@
 }
 
 @layer components {
+
   /* Link underline animation */
   .link-hover {
     @apply relative;
   }
-  
+
   .link-hover::after {
     content: '';
     @apply absolute bottom-0 left-0 w-full h-px bg-foreground;
@@ -119,7 +120,7 @@
     transform-origin: right;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .link-hover:hover::after {
     transform: scaleX(1);
     transform-origin: left;
@@ -147,29 +148,43 @@
   }
 
   /* Stagger children animation */
-  .stagger-children > * {
+  .stagger-children>* {
     opacity: 0;
     animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  .stagger-children > *:nth-child(1) { animation-delay: 0s; }
-  .stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
-  .stagger-children > *:nth-child(3) { animation-delay: 0.2s; }
-  .stagger-children > *:nth-child(4) { animation-delay: 0.3s; }
-  .stagger-children > *:nth-child(5) { animation-delay: 0.4s; }
+  .stagger-children>*:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .stagger-children>*:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .stagger-children>*:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  .stagger-children>*:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+
+  .stagger-children>*:nth-child(5) {
+    animation-delay: 0.4s;
+  }
 
   /* Card hover glow effect */
   .card-glow {
     @apply relative overflow-hidden rounded-2xl;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-                box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .card-glow::before {
     content: '';
     @apply absolute inset-0 opacity-0 rounded-2xl;
-    background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
-                                hsl(var(--accent-purple) / 0.08), transparent 40%);
+    background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        hsl(var(--accent-purple) / 0.08), transparent 40%);
     transition: opacity 0.4s ease;
   }
 
@@ -180,7 +195,7 @@
   .card-glow:hover {
     transform: translateY(-2px);
     box-shadow: 0 20px 40px -15px hsl(var(--accent-purple) / 0.15),
-                0 0 0 1px hsl(var(--border));
+      0 0 0 1px hsl(var(--border));
   }
 
   /* Icon container with glow */
@@ -231,6 +246,7 @@
     opacity: 0;
     transform: translateY(24px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -241,6 +257,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -251,6 +268,7 @@
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -258,18 +276,24 @@
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.4;
   }
+
   50% {
     opacity: 0.8;
   }
@@ -279,6 +303,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -426,11 +451,32 @@
 }
 
 @keyframes breathe {
+
   0%,
   100% {
     transform: translate(-50%, -50%) scale(1);
   }
+
   50% {
     transform: translate(-50%, -50%) scale(1.20);
+  }
+}
+
+/* Gradient text animation */
+.shiny-text {
+  background: linear-gradient(90deg,
+      #8484ff,
+      #1d4ed8,
+      #8484ff);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: text-shine 3s linear infinite;
+}
+
+@keyframes text-shine {
+  to {
+    background-position: 200% center;
   }
 }

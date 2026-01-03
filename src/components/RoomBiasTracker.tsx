@@ -1,5 +1,5 @@
 import { RotateCcw, Eye, Users2 } from "lucide-react";
-import { useBiasSound } from "@/hooks/useBiasSound";
+import { useClickSound } from "@/hooks/useClickSound";
 import { useInView } from "@/hooks/useInView";
 
 type BiasState = "neutral" | "bullish" | "bearish";
@@ -33,7 +33,7 @@ const RoomBiasTracker = ({
   stats
 }: RoomBiasTrackerProps) => {
   const { ref, isInView } = useInView({ threshold: 0.1 });
-  const { playBiasSound, isMuted } = useBiasSound();
+  const { playClick } = useClickSound();
 
   const cycleBias = (timeframe: string) => {
     if (!canInteract) return;
@@ -43,7 +43,7 @@ const RoomBiasTracker = ({
       currentBias === "neutral" ? "bullish" :
         currentBias === "bullish" ? "bearish" : "neutral";
 
-    playBiasSound(nextBias);
+    playClick(nextBias);
     onBiasChange(timeframe, nextBias);
   };
 

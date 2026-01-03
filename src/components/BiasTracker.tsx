@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useInView } from "@/hooks/useInView";
 import { RotateCcw } from "lucide-react";
 import AuroraBackground from "@/components/ui/aurora-background";
+import { useClickSound } from "@/hooks/useClickSound";
 
 type BiasState = "neutral" | "bullish" | "bearish";
 
@@ -12,7 +13,7 @@ interface TimeframeBias {
 
 const BiasTracker = () => {
   const { ref, isInView } = useInView({ threshold: 0.1 });
-
+  const { playClick } = useClickSound();
 
   const [timeframes, setTimeframes] = useState<TimeframeBias[]>([
     { label: "1D", bias: "neutral" },
@@ -30,6 +31,8 @@ const BiasTracker = () => {
         currentBias === "neutral" ? "bullish" :
           currentBias === "bullish" ? "bearish" : "neutral";
       newTimeframes[index] = { ...newTimeframes[index], bias: nextBias };
+      // Play the click sound for the new bias
+      playClick(nextBias);
       return newTimeframes;
     });
   };
@@ -75,26 +78,16 @@ const BiasTracker = () => {
       <AuroraBackground className="opacity-20 translate-y-[-20%]" />
 
       <div className="container relative z-10 mx-auto px-6">
-        <div
-          ref={ref}
-          className={`transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <p className="mb-4 text-sm tracking-[0.2em] uppercase text-muted-foreground">
-            Tool
-          </p>
-          <h2 className="mb-6 font-display text-4xl font-medium tracking-tight md:text-5xl">
-            Trading Bias Tracker
-          </h2>
+        <div ref={ref} className={`transition-all duration-1000 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <p className="mb-4 text-sm tracking-[0.2em] uppercase text-muted-foreground">Tool</p>
+          <h2 className="mb-6 font-display text-4xl font-medium tracking-tight md:text-5xl">Trading Bias Tracker</h2>
           <p className="mb-16 max-w-lg text-muted-foreground leading-relaxed">
             Click any timeframe to cycle through market bias states.
           </p>
         </div>
 
         {/* Timeframe Grid */}
-        <div
-          className={`mb-16 grid grid-cols-5 gap-3 transition-all duration-1000 delay-200 md:gap-4 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-        >
+        <div className={`mb-16 grid grid-cols-5 gap-3 transition-all duration-1000 delay-200 md:gap-4 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {timeframes.map((tf, index) => (
             <button
               key={tf.label}
@@ -103,34 +96,29 @@ const BiasTracker = () => {
               style={{ transitionDelay: `${index * 50}ms` }}
             >
               {/* Glow effect on hover */}
-              <div className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              <div
+                className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 style={{
-                  background: tf.bias === "bullish"
-                    ? "radial-gradient(circle at center, hsl(var(--success) / 0.1), transparent 70%)"
-                    : tf.bias === "bearish"
-                      ? "radial-gradient(circle at center, hsl(var(--destructive) / 0.1), transparent 70%)"
-                      : "radial-gradient(circle at center, hsl(var(--foreground) / 0.03), transparent 70%)"
+                  background:
+                    tf.bias === "bullish"
+                      ? "radial-gradient(circle at center, hsl(var(--success) / 0.1), transparent 70%)"
+                      : tf.bias === "bearish"
+                        ? "radial-gradient(circle at center, hsl(var(--destructive) / 0.1), transparent 70%)"
+                        : "radial-gradient(circle at center, hsl(var(--foreground) / 0.03), transparent 70%)",
                 }}
               />
 
               <span className="relative text-xl font-medium md:text-2xl">{tf.label}</span>
-              <span className="relative mt-2 text-[10px] uppercase tracking-[0.15em] opacity-70">
-                {tf.bias}
-              </span>
+              <span className="relative mt-2 text-[10px] uppercase tracking-[0.15em] opacity-70">{tf.bias}</span>
             </button>
           ))}
         </div>
 
         {/* Overall Bias */}
-        <div
-          className={`mb-12 flex flex-col items-center transition-all duration-1000 delay-300 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-        >
+        <div className={`mb-12 flex flex-col items-center transition-all duration-1000 delay-300 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className={`rounded-2xl border px-10 py-6 text-center transition-all duration-500 ${getOverallBiasStyles(getOverallBias())}`}>
             <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Overall Bias</span>
-            <span className="mt-2 block text-2xl font-medium uppercase tracking-wide">
-              {getOverallBias()}
-            </span>
+            <span className="mt-2 block text-2xl font-medium uppercase tracking-wide">{getOverallBias()}</span>
           </div>
 
           <div className="mt-6 flex items-center gap-6 text-sm text-muted-foreground">
@@ -152,10 +140,7 @@ const BiasTracker = () => {
         </div>
 
         {/* Legend & Reset */}
-        <div
-          className={`flex flex-col items-center gap-8 transition-all duration-1000 delay-400 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-            }`}
-        >
+        <div className={`flex flex-col items-center gap-8 transition-all duration-1000 delay-400 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <button
             onClick={resetAll}
             className="group btn-glow inline-flex items-center gap-2 rounded-xl border border-border/50 bg-card/30 px-6 py-2.5 text-sm text-muted-foreground transition-all duration-300 hover:border-border hover:bg-card/50 hover:text-foreground"
@@ -165,8 +150,7 @@ const BiasTracker = () => {
           </button>
         </div>
       </div>
-
-    </section >
+    </section>
   );
 };
 

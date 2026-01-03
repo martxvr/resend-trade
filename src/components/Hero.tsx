@@ -54,9 +54,9 @@ const Hero = () => {
 
           {/* Hero headline with editorial serif */}
           <h1 className="mb-8 font-display text-5xl font-medium tracking-tight leading-[1.1] md:text-6xl lg:text-7xl animate-fade-up-delay-1">
-            Bias tracking
+            <span className="tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Bias tracking</span>
             <br />
-            <span className="text-muted-foreground">for traders</span>
+            <span className="tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">for traders</span>
           </h1>
 
           {/* Subheadline */}
