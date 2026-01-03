@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface PremiumBackgroundProps {
@@ -12,6 +12,13 @@ export function PremiumBackground({
     className,
     children
 }: PremiumBackgroundProps) {
+    useEffect(() => {
+        // Re-initialize Unicorn Studio after render
+        if ((window as any).UnicornStudio) {
+            (window as any).UnicornStudio.init();
+        }
+    }, []);
+
     return (
         <div className={`relative w-full h-full overflow-hidden bg-[#000000] ${className}`}>
             {/* Dark Monochrome Gradients */}
@@ -36,6 +43,13 @@ export function PremiumBackground({
                 {/* Central shadow for depth */}
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/60" />
             </div>
+
+            {/* Unicorn Studio Background */}
+            <div
+                data-us-project="qPVvnWEWLLiJgYtSkKyB"
+                className="absolute inset-0 z-0 pointer-events-none"
+                style={{ filter: 'grayscale(1.0)' }}
+            ></div>
 
             {/* Subtle Noise Texture Layer */}
             <div

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export default function CreatorWaitlist() {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [joined, setJoined] = useState(false);
+
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,10 +59,7 @@ export default function CreatorWaitlist() {
     return (
         <SidebarLayout>
             <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-6 overflow-hidden">
-                {/* Background is handled by SidebarLayout usually having a background, or we can add one here */}
-                <div className="absolute inset-0 z-0">
-                    <AuroraBackground className="opacity-30" />
-                </div>
+                <AuroraBackground className="opacity-30" />
 
                 <div className="relative z-10 max-w-2xl w-full text-center space-y-8 animate-in fade-in zoom-in duration-700">
 

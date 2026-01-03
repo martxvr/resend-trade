@@ -205,6 +205,7 @@ export default function Profile() {
             noise={{ opacity: 0.5, scale: 1.2 }}
             sizing="fill"
             className="min-h-screen"
+            grayscale={true}
         >
             <div className="w-full px-4 py-10">
                 {/* Back button */}

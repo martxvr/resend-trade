@@ -15,7 +15,7 @@ const Hero = () => {
       {/* Unicorn Studio Background */}
       <div
         data-us-project="p7Ff6pfTrb5Gs59C7nLC"
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 pointer-events-none"
       ></div>
 
       {/* Ambient glow effects */}

@@ -22,6 +22,7 @@ interface EtherealShadowProps {
     style?: CSSProperties;
     className?: string;
     children?: React.ReactNode;
+    grayscale?: boolean;
 }
 
 function mapRange(
@@ -52,8 +53,16 @@ export function EtherealShadow({
     noise,
     style,
     className,
-    children
+    children,
+    grayscale = false
 }: EtherealShadowProps) {
+    useEffect(() => {
+        // Re-initialize Unicorn Studio after render
+        if ((window as any).UnicornStudio) {
+            (window as any).UnicornStudio.init();
+        }
+    }, []);
+
     const id = useInstanceId();
     const animationEnabled = animation && animation.scale > 0;
     const feColorMatrixRef = useRef<SVGFEColorMatrixElement>(null);
@@ -102,69 +111,78 @@ export function EtherealShadow({
                 ...style
             }}
         >
-            {/* Background Effect Layer */}
-            <div
-                style={{
-                    position: "absolute",
-                    inset: -displacementScale,
-                    filter: animationEnabled ? `url(#${id}) blur(4px)` : "none",
-                    zIndex: 0
-                }}
-            >
-                {animationEnabled && (
-                    <svg style={{ position: "absolute" }}>
-                        <defs>
-                            <filter id={id}>
-                                <feTurbulence
-                                    result="undulation"
-                                    numOctaves="2"
-                                    baseFrequency={`${mapRange(animation.scale, 0, 100, 0.001, 0.0005)},${mapRange(animation.scale, 0, 100, 0.004, 0.002)}`}
-                                    seed="0"
-                                    type="turbulence"
-                                />
-                                <feColorMatrix
-                                    ref={feColorMatrixRef}
-                                    in="undulation"
-                                    type="hueRotate"
-                                    values="180"
-                                />
-                                <feColorMatrix
-                                    in="dist"
-                                    result="circulation"
-                                    type="matrix"
-                                    values="4 0 0 0 1  4 0 0 0 1  4 0 0 0 1  1 0 0 0 0"
-                                />
-                                <feDisplacementMap
-                                    in="SourceGraphic"
-                                    in2="circulation"
-                                    scale={displacementScale}
-                                    result="dist"
-                                />
-                                <feDisplacementMap
-                                    in="dist"
-                                    in2="undulation"
-                                    scale={displacementScale}
-                                    result="output"
-                                />
-                            </filter>
-                        </defs>
-                    </svg>
-                )}
+            {grayscale ? (
+                /* Unicorn Studio Background Layer for grayscale mode (Settings/Rooms logic) */
+                <div
+                    data-us-project="qPVvnWEWLLiJgYtSkKyB"
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    style={{ filter: 'grayscale(1.0)' }}
+                />
+            ) : (
+                /* Original Background Effect Layer */
                 <div
                     style={{
-                        backgroundColor: color,
-                        maskImage: `url('https://framerusercontent.com/images/ceBGguIpUU8luwByxuQz79t7To.png')`,
-                        maskSize: sizing === "stretch" ? "100% 100%" : "cover",
-                        maskRepeat: "no-repeat",
-                        maskPosition: "center",
-                        width: "100%",
-                        height: "100%"
+                        position: "absolute",
+                        inset: -displacementScale,
+                        filter: animationEnabled ? `url(#${id}) blur(4px)` : "none",
+                        zIndex: 0
                     }}
-                />
-            </div>
+                >
+                    {animationEnabled && (
+                        <svg style={{ position: "absolute" }}>
+                            <defs>
+                                <filter id={id}>
+                                    <feTurbulence
+                                        result="undulation"
+                                        numOctaves="2"
+                                        baseFrequency={`${mapRange(animation.scale, 0, 100, 0.001, 0.0005)},${mapRange(animation.scale, 0, 100, 0.004, 0.002)}`}
+                                        seed="0"
+                                        type="turbulence"
+                                    />
+                                    <feColorMatrix
+                                        ref={feColorMatrixRef}
+                                        in="undulation"
+                                        type="hueRotate"
+                                        values="180"
+                                    />
+                                    <feColorMatrix
+                                        in="dist"
+                                        result="circulation"
+                                        type="matrix"
+                                        values="4 0 0 0 1  4 0 0 0 1  4 0 0 0 1  1 0 0 0 0"
+                                    />
+                                    <feDisplacementMap
+                                        in="SourceGraphic"
+                                        in2="circulation"
+                                        scale={displacementScale}
+                                        result="dist"
+                                    />
+                                    <feDisplacementMap
+                                        in="dist"
+                                        in2="undulation"
+                                        scale={displacementScale}
+                                        result="output"
+                                    />
+                                </filter>
+                            </defs>
+                        </svg>
+                    )}
+                    <div
+                        style={{
+                            backgroundColor: color,
+                            maskImage: `url('https://framerusercontent.com/images/ceBGguIpUU8luwByxuQz79t7To.png')`,
+                            maskSize: sizing === "stretch" ? "100% 100%" : "cover",
+                            maskRepeat: "no-repeat",
+                            maskPosition: "center",
+                            width: "100%",
+                            height: "100%"
+                        }}
+                    />
+                </div>
+            )}
 
-            {/* Noise Overlay */}
-            {noise && noise.opacity > 0 && (
+            {/* Noise Overlay (only for original mode) */}
+            {!grayscale && noise && noise.opacity > 0 && (
                 <div
                     style={{
                         position: "absolute",

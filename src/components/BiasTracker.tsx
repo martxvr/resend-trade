@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useInView } from "@/hooks/useInView";
 import { RotateCcw } from "lucide-react";
 import AuroraBackground from "@/components/ui/aurora-background";
@@ -12,6 +12,7 @@ interface TimeframeBias {
 
 const BiasTracker = () => {
   const { ref, isInView } = useInView({ threshold: 0.1 });
+
 
   const [timeframes, setTimeframes] = useState<TimeframeBias[]>([
     { label: "1D", bias: "neutral" },
@@ -71,7 +72,7 @@ const BiasTracker = () => {
 
   return (
     <section id="tracker" className="relative border-t border-border/50 py-32 overflow-hidden">
-      <AuroraBackground />
+      <AuroraBackground className="opacity-20 translate-y-[-20%]" />
 
       <div className="container relative z-10 mx-auto px-6">
         <div

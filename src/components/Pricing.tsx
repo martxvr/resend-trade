@@ -1,20 +1,24 @@
-
 import { CheckCircle2 } from "lucide-react";
+import { useEffect } from 'react';
 
 const Pricing = () => {
+    useEffect(() => {
+        // Re-initialize Unicorn Studio after render
+        if ((window as any).UnicornStudio) {
+            (window as any).UnicornStudio.init();
+        }
+    }, []);
+
     return (
         <section id="pricing" className="py-24 relative overflow-hidden">
             {/* Spline Background with Margin-Top */}
-            <div className="spline-container absolute top-0 left-0 w-full h-full z-0 pointer-events-none mt-[200px]">
-                <iframe
-                    src="https://my.spline.design/glowingplanetparticles-nhVHji30IRoa5HBGe8yeDiTs"
-                    frameBorder="0"
-                    width="100%"
-                    height="100%"
-                    id="aura-spline"
-                    className="w-full h-full"
-                />
-            </div>
+            <iframe
+                src='https://my.spline.design/glowingplanetparticles-nhVHji30IRoa5HBGe8yeDiTs/'
+                frameBorder='0'
+                width='100%'
+                height='100%'
+                className="absolute inset-0 z-0 pointer-events-none opacity-40 mt-[200px]"
+            ></iframe>
 
             {/* Gradient Overlays for Fade Effect with Margin-Top */}
             <div className="absolute inset-0 z-1 pointer-events-none mt-[200px]">
