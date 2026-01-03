@@ -104,7 +104,7 @@ export default function Dashboard() {
 
   return (
     <SidebarLayout onCreateRoom={() => setShowCreateModal(true)}>
-      <EtherealShadow color="rgba(80, 80, 80, 1)" animation={{ scale: 100, speed: 90 }} noise={{ opacity: 0.6, scale: 1.2 }} sizing="fill" className="min-h-screen">
+      <EtherealShadow color="rgba(80, 80, 80, 1)" animation={{ scale: 100, speed: 90 }} noise={{ opacity: 0.6, scale: 1.2 }} sizing="fill" className="min-h-screen" grayscale={true}>
         <div className="max-w-6xl mx-auto px-6 pt-12 pb-6">
 
           {/* Header & Tabs */}
