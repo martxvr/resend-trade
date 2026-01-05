@@ -482,9 +482,12 @@ export default function Room() {
               isOwner={isOwner}
               onReset={isOwner ? handleResetAll : undefined}
               stats={{
-                bullishCount: activeBiases.filter(b => b.direction === 'long').length,
-                bearishCount: activeBiases.filter(b => b.direction === 'short').length,
-                neutralCount: activeBiases.filter(b => b.direction === 'neutral').length
+                bullishCount: activeBiases.filter(b => strategy.timeframes.includes(b.timeframe) && b.direction === 'long').length,
+                bearishCount: activeBiases.filter(b => strategy.timeframes.includes(b.timeframe) && b.direction === 'short').length,
+                neutralCount: strategy.timeframes.length - (
+                  activeBiases.filter(b => strategy.timeframes.includes(b.timeframe) && b.direction === 'long').length +
+                  activeBiases.filter(b => strategy.timeframes.includes(b.timeframe) && b.direction === 'short').length
+                )
               }}
             />
           </div>

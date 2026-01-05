@@ -63,8 +63,9 @@ const RoomBiasTracker = ({
   };
 
   const getOverallBias = (): 'neutral' | 'bullish' | 'bearish' => {
-    if (stats.bullishCount > stats.bearishCount) return "bullish";
-    if (stats.bearishCount > stats.bullishCount) return "bearish";
+    const { bullishCount, bearishCount, neutralCount } = stats;
+    if (bullishCount > bearishCount && bullishCount > neutralCount) return "bullish";
+    if (bearishCount > bullishCount && bearishCount > neutralCount) return "bearish";
     return "neutral";
   };
 
